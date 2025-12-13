@@ -1,59 +1,67 @@
-Krishi - AI-Powered Agriculture Assistant
-Krishi is a modern, AI-powered web application designed to help farmers diagnose crop diseases, get instant remedies, and connect with agricultural experts. Built with a focus on accessibility and ease of use, it supports multiple languages and offline capabilities.
+🌾 Krishi - AI-Powered Agriculture Assistant
+Status License Version
 
-🚀 Features
-Instant Disease Diagnosis: Point your camera at a leaf to instantly identify diseases using offline-capable Computer Vision.
-Smart Remedies: Get precise chemical and organic treatment plans tailored to the diagnosed issue.
-Multilingual Support: Fully localized in English, Hindi, and Kannada.
-Offline Mode: Functional in remote areas with limited internet connectivity.
-Community & Expert Access: Connect with a community of farmers and get verified advice from experts.
-Market Insights: (Planned) Access real-time market prices and trends.
+Built for the Modern Farmer 🚜
+Instant Diagnosis • Smart Remedies • Community Verified
+
+📖 Overview
+Krishi is a cutting-edge web application empowering farmers with AI-driven tools. leveraging computer vision to diagnose crop diseases instantly and providing scientifically backed remedies. With a focus on accessibility, Krishi operates offline and supports multiple local languages, bridging the gap between technology and traditional farming.
+
+✨ Key Features
+Feature	Description
+🤖 Instant Scan	Advanced AI identifies plant diseases from a simple photo in seconds.
+💊 Smart Remedies	Get precise chemical and organic treatment plans for your crops.
+🌐 Offline Mode	Fully functional in remote fields with zero internet connectivity.
+🗣️ Multilingual	Native support for English, Hindi, and Kannada.
+👥 Community	Connect with experts and other farmers to validate diagnoses.
+📸 Screenshots
+Krishi Dashboard
+Intuitive Dashboard & Scanning Interface
+
 🛠️ Tech Stack
-Frontend
-Framework: React (Vite)
-Styling: Vanilla CSS (with modern glassmorphism design)
-Animations: Framer Motion
-Icons: Lucide React
-Routing: React Router DOM
-Backend
-Runtime: Node.js
-Framework: Express.js
-Database: MongoDB (Mongoose)
-File Handling: Multer (for image uploads)
+Frontend	Backend	Tools
+React	Node.js	Vite
+Framer Motion	Express.js	Git
+CSS Modules	MongoDB	Figma
 📂 Project Structure
 Krishi/
-├── frontend-new/     # React frontend application
+├── 📱 frontend-new/     # React Client
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── context/
-│   │   └── data/
-├── backend/          # Express backend server
-│   ├── models/
-│   ├── routes/
-│   └── uploads/
+│   │   ├── components/  # Reusable UI components
+│   │   ├── pages/       # Route pages (Home, Scan, etc.)
+│   │   └── context/     # Global state (Lang, Chat)
+├── 🖥️ backend/          # API Server
+│   ├── models/          # Mongoose Schemas
+│   └── routes/          # API Endpoints
+└── 📄 README.md         # Documentation
 ⚡ Getting Started
 Prerequisites
-Node.js (v18 or higher)
-MongoDB (Local or Atlas URI)
-Installation
-Clone the repository:
+Node.js (v18+)
+MongoDB (Local or Atlas)
+Installation Guide
+Clone the Repository
 
 git clone https://github.com/yourusername/krishi.git
 cd krishi
-Setup Backend:
+Backend Setup
 
 cd backend
 npm install
-# Create a .env file and add your MONGODB_URI and PORT
-node index.js
-Setup Frontend:
+# Create .env with PORT=5000 and MONGO_URI
+npm start
+Frontend Setup
 
 cd ../frontend-new
 npm install
 npm run dev
-🤝 Contributing
-Contributions are welcome! Please fork the repository and submit a pull request.
-
+🤝 Application Flow
+Select Language: Choose between English, Hindi, or Kannada.
+Scan Crop: Upload or capture a photo of the affected crop.
+View Results: See immediate diagnosis and confidence score.
+Get Treatment: View recommended chemical and organic remedies.
 📄 License
-This project is licensed under the MIT License.
+This project is open source and available under the 
+MIT License
+.
+
+Built with ❤️ for Indian Farmers
