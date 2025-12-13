@@ -1,0 +1,207 @@
+.scan-page {
+    padding: 2rem 0;
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scan-content {
+    width: 100%;
+    max-width: 900px;
+}
+
+/* Upload Zone */
+.upload-zone {
+    text-align: center;
+    padding: 4rem 2rem;
+    border-style: dashed;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    background: rgba(20, 20, 30, 0.4);
+    position: relative;
+    /* For language selector positioning */
+}
+
+.upload-icon-wrapper {
+    width: 100px;
+    height: 100px;
+    background: rgba(0, 230, 118, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--primary);
+}
+
+.upload-zone h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.upload-zone p {
+    color: var(--text-muted);
+}
+
+/* Analysis Layout */
+.analysis-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+@media (min-width: 768px) {
+    .analysis-container {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Preview Image */
+.image-preview-wrapper {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    /* Fix for image fit */
+    justify-content: center;
+    align-items: center;
+    background: #000;
+    min-height: 400px;
+}
+
+.preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.preview-actions {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    width: 90%;
+    justify-content: center;
+}
+
+/* Scanning Animation */
+.scanning-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 230, 118, 0.1);
+    z-index: 10;
+}
+
+.scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--primary);
+    box-shadow: 0 0 15px var(--primary);
+    animation: scanMove 2s linear infinite;
+}
+
+@keyframes scanMove {
+    0% {
+        top: 0;
+    }
+
+    100% {
+        top: 100%;
+    }
+}
+
+/* Result Card */
+.result-card {
+    padding: 2rem;
+    border-radius: 16px;
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+/* Confidence Ring */
+.confidence-ring {
+    width: 80px;
+    height: 80px;
+    position: relative;
+}
+
+.circular-chart {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.circle-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 2.5;
+}
+
+.circle {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    animation: progress 1s ease-out forwards;
+}
+
+@keyframes progress {
+    0% {
+        stroke-dasharray: 0, 100;
+    }
+}
+
+.percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.disease-info h3 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.badge-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 50, 50, 0.1);
+    color: #ff5555;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Treatments */
+.treatments-section h4 {
+    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+}
+
+.full-width {
+    width: 100%;
+}

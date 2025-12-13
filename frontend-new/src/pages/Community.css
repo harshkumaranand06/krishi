@@ -1,0 +1,244 @@
+.community-page {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+}
+
+@media (min-width: 900px) {
+    .community-page {
+        grid-template-columns: 300px 1fr;
+        align-items: start;
+    }
+}
+
+/* Sidebar Widgets */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.widget {
+    padding: 1.5rem;
+    border-radius: 12px;
+}
+
+.widget h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Weather */
+.weather-data {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.temp {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.condition {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+
+.details {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.details span {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* News */
+.news-item {
+    border-bottom: 1px solid var(--border-glass);
+    padding-bottom: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.news-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.news-item h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+}
+
+.news-item p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Expert Profile */
+.expert-profile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Create Post */
+.create-post {
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.create-post textarea {
+    width: 100%;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    color: #fff;
+    min-height: 100px;
+    resize: vertical;
+    margin: 1rem 0;
+    font-family: inherit;
+}
+
+.create-post textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.post-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Posts */
+.posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.post-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.avatar.expert {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
+}
+
+.user-info h4 {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.75rem;
+    background: rgba(0, 230, 118, 0.2);
+    color: var(--primary);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+.role {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.post-content {
+    margin-bottom: 1.5rem;
+    color: var(--text-main);
+    line-height: 1.6;
+}
+
+.post-footer {
+    display: flex;
+    gap: 1.5rem;
+    border-top: 1px solid var(--border-glass);
+    padding-top: 1rem;
+}
+
+.action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.action-btn:hover {
+    color: var(--primary);
+}
+
+/* Expert Post Highlight */
+.expert-post {
+    border: 1px solid rgba(0, 230, 118, 0.3);
+    box-shadow: inset 0 0 20px rgba(0, 230, 118, 0.05);
+}
+
+/* Loading Spinner */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.create-post textarea:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
