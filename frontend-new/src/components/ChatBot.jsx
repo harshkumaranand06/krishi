@@ -20,30 +20,48 @@ export default function ChatBot() {
 
     useEffect(scrollToBottom, [messages]);
 
-    const handleSend = (e) => {
+    const handleSend = async (e) => {
         e.preventDefault();
         if (!input.trim()) return;
 
         const userMsg = { id: Date.now(), text: input, sender: 'user' };
         setMessages(prev => [...prev, userMsg]);
+        const userInput = input;
         setInput("");
 
-        // Simulated AI Response (Local Knowledge Base)
-        setTimeout(async () => {
+        // Show typing indicator
+        const typingMsg = { id: Date.now() + 0.5, text: "Typing...", sender: 'bot', typing: true };
+        setMessages(prev => [...prev, typingMsg]);
+
+        try {
+            // Try to fetch from backend API first
+            const { chatAPI } = await import('../utils/api');
+            const response = await chatAPI.sendMessage(userInput);
+
             let replyText = "";
 
-            // FUTURE: Add Gemini API call here if VITE_GEMINI_KEY exists
-            // const geminiResponse = await fetchGemini(input);
-            // if(geminiResponse) replyText = geminiResponse;
-
-            if (!replyText) {
+            if (response.success && response.data?.reply) {
+                replyText = response.data.reply;
+            } else {
+                // Fallback to local knowledge base if API fails
                 const { getSmartResponse } = await import('../data/agriKnowledge');
-                replyText = getSmartResponse(input);
+                replyText = getSmartResponse(userInput);
             }
 
+            // Remove typing indicator and add actual response
+            setMessages(prev => prev.filter(msg => !msg.typing));
             const botMsg = { id: Date.now() + 1, text: replyText, sender: 'bot' };
             setMessages(prev => [...prev, botMsg]);
-        }, 800);
+        } catch (error) {
+            console.error('Chat error:', error);
+            // Fallback to local knowledge base on error
+            const { getSmartResponse } = await import('../data/agriKnowledge');
+            const replyText = getSmartResponse(userInput);
+
+            setMessages(prev => prev.filter(msg => !msg.typing));
+            const botMsg = { id: Date.now() + 1, text: replyText, sender: 'bot' };
+            setMessages(prev => [...prev, botMsg]);
+        }
     };
 
     return (

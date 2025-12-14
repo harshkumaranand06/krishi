@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Tag, Phone, Plus, ArrowLeft, Filter, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './Market.css';
@@ -12,23 +12,67 @@ const DUMMY_PRODUCTS = [
 
 export default function Market() {
     const [view, setView] = useState('home'); // home | buy | sell
-    const [products, setProducts] = useState(DUMMY_PRODUCTS);
+    const [products, setProducts] = useState([]);
     const [categories, setCategory] = useState('All');
+    const [loading, setLoading] = useState(true);
 
     // Sell Form State
     const [newProduct, setNewProduct] = useState({ name: '', price: '', category: 'Vegetables' });
 
-    const handleSellSubmit = (e) => {
+    // Fetch products from backend on mount
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const { marketAPI } = await import('../utils/api');
+                const response = await marketAPI.getProducts();
+
+                if (response.success && response.data?.products) {
+                    setProducts(response.data.products);
+                } else {
+                    // Fallback to dummy data
+                    setProducts(DUMMY_PRODUCTS);
+                }
+            } catch (error) {
+                console.error('Failed to fetch products:', error);
+                setProducts(DUMMY_PRODUCTS);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
+    const handleSellSubmit = async (e) => {
         e.preventDefault();
         const product = {
-            id: Date.now(),
             ...newProduct,
             seller: "You (Local Farmer)",
             type: "sell"
         };
-        setProducts([product, ...products]);
+
+        // Optimistically update UI
+        const tempProduct = { ...product, id: Date.now() };
+        setProducts([tempProduct, ...products]);
         setView('buy'); // Redirect to buy page to see listing
         setNewProduct({ name: '', price: '', category: 'Vegetables' });
+
+        // Sync to backend
+        try {
+            const { marketAPI } = await import('../utils/api');
+            const response = await marketAPI.createProduct(product);
+
+            if (response.success && response.data?.product) {
+                // Update with server-generated product
+                setProducts(prev => [
+                    response.data.product,
+                    ...prev.filter(p => p.id !== tempProduct.id)
+                ]);
+            }
+        } catch (error) {
+            console.error('Failed to create product:', error);
+            // Keep the optimistic update even if backend fails
+        }
     };
 
     const handleCall = (sellerName) => {

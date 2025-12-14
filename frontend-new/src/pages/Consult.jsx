@@ -11,11 +11,37 @@ const EXPERTS = [
 ];
 
 export default function Consult() {
+    const [experts, setExperts] = useState(EXPERTS);
+    const [loading, setLoading] = useState(true);
     const [activeCall, setActiveCall] = useState(null); // null | 'audio' | 'video'
     const [callStatus, setCallStatus] = useState('idle'); // idle | connecting | connected | ended
     const [selectedExpert, setSelectedExpert] = useState(null);
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
+
+    // Fetch experts from backend on mount
+    useEffect(() => {
+        const fetchExperts = async () => {
+            try {
+                const { consultAPI } = await import('../utils/api');
+                const response = await consultAPI.getExperts();
+
+                if (response.success && response.data?.experts) {
+                    setExperts(response.data.experts);
+                } else {
+                    // Fallback to hardcoded experts
+                    setExperts(EXPERTS);
+                }
+            } catch (error) {
+                console.error('Failed to fetch experts:', error);
+                setExperts(EXPERTS);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchExperts();
+    }, []);
 
     const startCall = (type, expert) => {
         setSelectedExpert(expert);

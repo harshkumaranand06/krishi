@@ -17,24 +17,45 @@ const INITIAL_POSTS = [
 ];
 
 export default function Community() {
-    // Initialize from LocalStorage or use default
-    const [posts, setPosts] = useState(() => {
-        try {
-            const saved = localStorage.getItem('krishi_posts');
-            return saved ? JSON.parse(saved) : INITIAL_POSTS;
-        } catch (e) {
-            return INITIAL_POSTS;
-        }
-    });
-
+    const [posts, setPosts] = useState([]);
     const [newQuery, setNewQuery] = useState("");
+    const [loading, setLoading] = useState(true);
 
-    // Persist to LocalStorage
+    // Fetch posts from backend on mount
     useEffect(() => {
-        localStorage.setItem('krishi_posts', JSON.stringify(posts));
+        const fetchPosts = async () => {
+            try {
+                const { communityAPI } = await import('../utils/api');
+                const response = await communityAPI.getPosts();
+
+                if (response.success && response.data?.posts) {
+                    setPosts(response.data.posts);
+                } else {
+                    // Fallback to localStorage or initial posts
+                    const saved = localStorage.getItem('krishi_posts');
+                    setPosts(saved ? JSON.parse(saved) : INITIAL_POSTS);
+                }
+            } catch (error) {
+                console.error('Failed to fetch posts:', error);
+                // Fallback to localStorage or initial posts
+                const saved = localStorage.getItem('krishi_posts');
+                setPosts(saved ? JSON.parse(saved) : INITIAL_POSTS);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPosts();
+    }, []);
+
+    // Persist to LocalStorage as backup
+    useEffect(() => {
+        if (posts.length > 0) {
+            localStorage.setItem('krishi_posts', JSON.stringify(posts));
+        }
     }, [posts]);
 
-    const handlePostSubmit = (e) => {
+    const handlePostSubmit = async (e) => {
         e.preventDefault();
         if (!newQuery.trim()) {
             alert("Please type a question first!");
@@ -42,7 +63,6 @@ export default function Community() {
         }
 
         const post = {
-            id: Date.now(),
             user: "You (Farmer)",
             role: "Farmer",
             content: newQuery,
@@ -50,9 +70,27 @@ export default function Community() {
             replies: 0
         };
 
-        // Update state immediately
-        setPosts([post, ...posts]);
+        // Optimistically update UI
+        const tempPost = { ...post, id: Date.now() };
+        setPosts([tempPost, ...posts]);
         setNewQuery("");
+
+        // Sync to backend
+        try {
+            const { communityAPI } = await import('../utils/api');
+            const response = await communityAPI.createPost(post);
+
+            if (response.success && response.data?.post) {
+                // Update with server-generated post (with proper ID)
+                setPosts(prev => [
+                    response.data.post,
+                    ...prev.filter(p => p.id !== tempPost.id)
+                ]);
+            }
+        } catch (error) {
+            console.error('Failed to create post:', error);
+            // Keep the optimistic update even if backend fails
+        }
     };
 
     return (

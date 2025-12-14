@@ -9,12 +9,36 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: '*', // Allow all origins for now (can be restricted later)
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
 app.use(express.json());
 
-// Routes Placeholder
+// Import Routes
+const chatRoutes = require('./routes/chat');
+const communityRoutes = require('./routes/community');
+const marketRoutes = require('./routes/market');
+const consultRoutes = require('./routes/consult');
+
+// Use Routes
+app.use('/api/chat', chatRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/market', marketRoutes);
+app.use('/api/consult', consultRoutes);
+
+// Health Check Route
 app.get('/', (req, res) => {
-    res.send('Crop Doctor AI Backend is running');
+    res.json({
+        message: 'Krishi Backend API is running',
+        endpoints: {
+            chat: '/api/chat',
+            community: '/api/community/posts',
+            market: '/api/market/products',
+            consult: '/api/consult/experts'
+        }
+    });
 });
 
 // Connect to MongoDB
@@ -23,7 +47,7 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/cropdoctor'
     useUnifiedTopology: true,
 })
     .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.log(err));
+    .catch(err => console.log('MongoDB Connection Error:', err));
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
