@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Camera, X, Activity, Droplet, Sprout, AlertTriangle, CheckCircle, Globe, ChevronDown } from 'lucide-react';
+import { Upload, Camera, X, Activity, Droplet, Sprout, AlertTriangle, CheckCircle, Globe, ChevronDown, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage, LANGUAGES } from '../context/LanguageContext';
 import './Scan.css';
@@ -20,7 +20,9 @@ const TRANSLATIONS = {
         treatments: "Recommended Treatments",
         precautions: "Preventive Measures",
         critical: "Critical Issue",
-        confidence: "Confidence"
+        confidence: "Confidence",
+        listenSummary: "Listen to Summary",
+        stopAudio: "Stop Audio"
     },
     hi: {
         title: "पत्ती की फोटो अपलोड करें",
@@ -37,7 +39,9 @@ const TRANSLATIONS = {
         treatments: "सुझाए गए उपचार",
         precautions: "बचाव के उपाय",
         critical: "गंभीर समस्या",
-        confidence: "सटीकता"
+        confidence: "सटीकता",
+        listenSummary: "सारांश सुनें",
+        stopAudio: "ऑडियो बंद करें"
     },
     kn: {
         title: "ಎಲೆ ಚಿತ್ರವನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
@@ -54,7 +58,9 @@ const TRANSLATIONS = {
         treatments: "ಶಿಫಾರಸು ಮಾಡಿದ ಚಿಕಿತ್ಸೆಗಳು",
         precautions: "ಮುನ್ನೆಚ್ಚರಿಕೆ ಕ್ರಮಗಳು",
         critical: "ಗಂಭೀರ ಸಮಸ್ಯೆ",
-        confidence: "ವಿಶ್ವಾಸಾರ್ಹತೆ"
+        confidence: "ವಿಶ್ವಾಸಾರ್ಹತೆ",
+        listenSummary: "ಸಾರಾಂಶವನ್ನು ಕೇಳಿ",
+        stopAudio: "ಆಡಿಯೋ ನಿಲ್ಲಿಸಿ"
     }
 };
 
@@ -64,6 +70,7 @@ export default function Scan() {
     const [showInvalidPopup, setShowInvalidPopup] = useState(false); // New state for popup
     const [isScanning, setIsScanning] = useState(false);
     const [result, setResult] = useState(null);
+    const [isSpeaking, setIsSpeaking] = useState(false);
     const { lang } = useLanguage();
     const fileInputRef = useRef(null);
 
@@ -118,11 +125,43 @@ export default function Scan() {
     };
 
     const resetScan = () => {
+        // Stop any ongoing speech
+        if (isSpeaking) {
+            stopVoiceSummary();
+        }
         setImage(null);
         setResult(null);
         setShowInvalidPopup(false);
         setIsScanning(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const playVoiceSummary = async () => {
+        if (!result) return;
+
+        try {
+            const { speak, getSpeechLang, createVoiceSummary } = await import('../utils/textToSpeech');
+            const summaryText = createVoiceSummary(result, lang);
+            const speechLang = getSpeechLang(lang);
+
+            setIsSpeaking(true);
+            speak(summaryText, speechLang, () => {
+                setIsSpeaking(false);
+            });
+        } catch (error) {
+            console.error('Voice summary error:', error);
+            setIsSpeaking(false);
+        }
+    };
+
+    const stopVoiceSummary = async () => {
+        try {
+            const { stopSpeaking } = await import('../utils/textToSpeech');
+            stopSpeaking();
+            setIsSpeaking(false);
+        } catch (error) {
+            console.error('Error stopping voice:', error);
+        }
     };
 
     return (
@@ -194,6 +233,26 @@ export default function Scan() {
                                             <h3>{result.disease}</h3>
                                             <span className="badge-danger"><AlertTriangle size={14} /> {t.critical}</span>
                                         </div>
+
+                                        {/* Voice Summary Button */}
+                                        <button
+                                            onClick={isSpeaking ? stopVoiceSummary : playVoiceSummary}
+                                            className={`btn ${isSpeaking ? 'btn-danger' : 'btn-secondary'}`}
+                                            style={{
+                                                marginLeft: 'auto',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                padding: '0.75rem 1.25rem',
+                                                fontSize: '0.95rem',
+                                                fontWeight: '600',
+                                                animation: isSpeaking ? 'pulse 2s infinite' : 'none'
+                                            }}
+                                            title={isSpeaking ? t.stopAudio : t.listenSummary}
+                                        >
+                                            {isSpeaking ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                                            {isSpeaking ? t.stopAudio : t.listenSummary}
+                                        </button>
                                     </div>
 
                                     <div className="diagnosis-details glass-panel">

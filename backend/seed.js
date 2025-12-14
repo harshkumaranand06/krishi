@@ -31,10 +31,7 @@ const sampleProducts = [
 async function seedDatabase() {
     try {
         // Connect to MongoDB
-        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/cropdoctor', {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/cropdoctor');
         console.log('MongoDB Connected');
 
         // Clear existing data
