@@ -54,7 +54,8 @@
 
 .input-icon input {
     width: 100%;
-    padding: 0.8rem 1rem 0.8rem 3rem;
+    box-sizing: border-box !important;
+    padding: 0.8rem 1rem 0.8rem 3.2rem !important;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 8px;

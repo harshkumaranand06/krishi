@@ -11,9 +11,19 @@ const MOCK_NEWS = [
 const INITIAL_POSTS = [
     { id: 1, user: "Dr. A. Swaminathan", role: "Expert", content: "To prevent root rot in tomatoes during monsoon, ensure raised beds are at least 15cm high. Also, apply Trichoderma viride.", likes: 142, replies: 12 },
     { id: 2, user: "Rajesh Farmer", role: "Farmer", content: "My wheat leaves are turning yellow at the tips. Is this water stress or a disease? I watered them 2 days ago.", likes: 8, replies: 5 },
-    { id: 3, user: "Kissan Seva Kendra", role: "Expert", content: " ALERT: Fall Armyworm detected in local maize crops. check your fields early morning for larvae.", likes: 89, replies: 24 },
-    { id: 4, user: "Vikram Singh", role: "Farmer", content: "Success story! I switched to organic neem spray for my Brinjal crop and the borer attack has reduced by 90%. happy to share formula.", likes: 56, replies: 18 },
+    { id: 3, user: "Kissan Seva Kendra", role: "Expert", content: "⚠️ ALERT: Fall Armyworm detected in local maize crops. Check your fields early morning for larvae.", likes: 89, replies: 24 },
+    { id: 4, user: "Vikram Singh", role: "Farmer", content: "Success story! I switched to organic neem spray for my Brinjal crop and the borer attack has reduced by 90%. Happy to share formula.", likes: 56, replies: 18 },
     { id: 5, user: "Amit Kumar", role: "Farmer", content: "What is the current mandi price for Onion in Nashik? Hearing rumors of a price drop.", likes: 12, replies: 7 },
+    { id: 6, user: "Dr. Priya Sharma", role: "Expert", content: "For late blight in potatoes, spray Mancozeb 75% WP @ 2.5g/liter. Repeat every 7-10 days. Remove infected plants immediately.", likes: 78, replies: 15 },
+    { id: 7, user: "Suresh Patel", role: "Farmer", content: "Just installed drip irrigation in my 2-acre cotton field. Water consumption reduced by 60%! Best investment ever 💧", likes: 134, replies: 32 },
+    { id: 8, user: "Meena Devi", role: "Farmer", content: "Can anyone suggest good quality hybrid tomato seeds for summer planting? Looking for heat-resistant varieties.", likes: 23, replies: 11 },
+    { id: 9, user: "Dr. Kumar Patel", role: "Expert", content: "Reminder: Soil testing is crucial before applying fertilizers. Over-fertilization harms both crops and soil health. Get your soil tested at nearest Krishi Vigyan Kendra.", likes: 95, replies: 8 },
+    { id: 10, user: "Ramesh Yadav", role: "Farmer", content: "My chili plants have white powdery coating on leaves. Is this powdery mildew? What organic treatment works best?", likes: 19, replies: 14 },
+    { id: 11, user: "Lakshmi Farms", role: "Farmer", content: "Harvested 45 quintals of rice per acre using SRI method! Traditional method gave only 32 quintals. SRI is the future 🌾", likes: 167, replies: 28 },
+    { id: 12, user: "Dr. Meena Kumari", role: "Expert", content: "Vermicompost application tips: Apply 5 tons/hectare before sowing. Mix well with soil. Results visible in 2-3 weeks. Boosts soil microbes naturally.", likes: 112, replies: 19 },
+    { id: 13, user: "Anil Deshmukh", role: "Farmer", content: "Government announced PM-KUSUM scheme for solar pumps. 90% subsidy available! Applied yesterday, process is simple.", likes: 201, replies: 45 },
+    { id: 14, user: "Priya Agro", role: "Farmer", content: "Looking to buy second-hand tractor in good condition. Budget 3-4 lakhs. Anyone selling in Maharashtra region?", likes: 15, replies: 9 },
+    { id: 15, user: "Dr. Arun Verma", role: "Expert", content: "Market analysis: Organic produce prices are 30-40% higher than conventional. Consider organic certification if you practice chemical-free farming.", likes: 88, replies: 22 },
 ];
 
 export default function Community() {

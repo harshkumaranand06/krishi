@@ -3,47 +3,44 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Leaf, Scan, Heart, ShoppingBag, Phone, Globe, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage, LANGUAGES } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { auth } from '../utils/firebase';
+import { signOut } from 'firebase/auth';
 import './Navbar.css';
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
-    const [user, setUser] = useState(null);
     const { lang, setLang } = useLanguage();
+    const { currentUser, userData } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
     const currentLang = LANGUAGES.find(l => l.code === lang)?.name || 'English';
 
-    // Check login state on mount and update
-    useEffect(() => {
-        const checkUser = () => {
-            const storedUser = localStorage.getItem("krishi_user");
-            if (storedUser) setUser(JSON.parse(storedUser));
-        };
-        checkUser();
-
-        window.addEventListener("storage", checkUser);
-        const interval = setInterval(checkUser, 1000);
-
-        return () => {
-            window.removeEventListener("storage", checkUser);
-            clearInterval(interval);
-        };
-    }, []);
-
-    const handleLogout = () => {
-        localStorage.removeItem("krishi_user");
-        setUser(null);
-        navigate('/login');
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            localStorage.removeItem("krishi_user");
+            navigate('/role-selection');
+        } catch (error) {
+            console.error("Logout Error", error);
+        }
     };
 
-    const navItems = [
+    const baseNavItems = [
         { name: 'Home', path: '/', icon: Leaf },
         { name: 'Scan', path: '/scan', icon: Scan },
         { name: 'Community', path: '/community', icon: Heart },
-        { name: 'Market', path: '/market', icon: ShoppingBag },
-        { name: 'Consult', path: '/consult', icon: Phone },
+        { name: 'Market', path: '/market', icon: ShoppingBag }
     ];
+
+    const navItems = [...baseNavItems];
+    
+    if (userData?.role === 'expert') {
+        navItems.push({ name: 'Dashboard', path: '/expert-dashboard', icon: Phone });
+    } else {
+        navItems.push({ name: 'Consult', path: '/consult', icon: Phone });
+    }
 
     const isActive = (path) => location.pathname === path ? 'active' : '';
 
@@ -88,10 +85,10 @@ export default function Navbar() {
                         </select>
                     </div>
 
-                    {user ? (
+                    {currentUser ? (
                         <button className="auth-btn" onClick={handleLogout}>Logout</button>
                     ) : (
-                        <Link to="/login" className="auth-btn">Login</Link>
+                        <Link to="/role-selection" className="auth-btn">Login</Link>
                     )}
                 </div>
 
@@ -115,10 +112,10 @@ export default function Navbar() {
                                     {item.name}
                                 </Link>
                             ))}
-                            {user ? (
+                            {currentUser ? (
                                 <button className="auth-btn mobile-auth" onClick={handleLogout}>Logout</button>
                             ) : (
-                                <Link to="/login" className="auth-btn mobile-auth" onClick={() => setIsOpen(false)}>Login</Link>
+                                <Link to="/role-selection" className="auth-btn mobile-auth" onClick={() => setIsOpen(false)}>Login</Link>
                             )}
                         </motion.div>
                     )}

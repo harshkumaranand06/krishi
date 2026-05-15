@@ -11,35 +11,44 @@ import './App.css';
 import Scan from './pages/Scan';
 import Market from './pages/Market';
 import Community from './pages/Community';
+import RoleSelection from './pages/RoleSelection';
+import ExpertRegister from './pages/ExpertRegister';
+import ExpertDashboard from './pages/ExpertDashboard';
 
 import { LanguageProvider } from './context/LanguageContext';
 import { ChatProvider } from './context/ChatContext';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   return (
-    <LanguageProvider>
-      <ChatProvider>
-        <Router>
-          <div className="app-wrapper">
-            <div className="sci-fi-grid"></div>
-            <div className="ambient-glow"></div>
-            <Navbar />
-            <main className="main-content">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/scan" element={<Scan />} />
-                <Route path="/market" element={<Market />} />
-                <Route path="/community" element={<Community />} />
-                <Route path="/consult" element={<Consult />} />
-              </Routes>
-            </main>
-            <ChatBot />
-            <Footer />
-          </div>
-        </Router>
-      </ChatProvider>
-    </LanguageProvider>
+    <AuthProvider>
+      <LanguageProvider>
+        <ChatProvider>
+          <Router>
+            <div className="app-wrapper">
+              <div className="sci-fi-grid"></div>
+              <div className="ambient-glow"></div>
+              <Navbar />
+              <main className="main-content">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/scan" element={<Scan />} />
+                  <Route path="/market" element={<Market />} />
+                  <Route path="/community" element={<Community />} />
+                  <Route path="/consult" element={<Consult />} />
+                  <Route path="/role-selection" element={<RoleSelection />} />
+                  <Route path="/expert-register" element={<ExpertRegister />} />
+                  <Route path="/expert-dashboard" element={<ExpertDashboard />} />
+                </Routes>
+              </main>
+              <ChatBot />
+              <Footer />
+            </div>
+          </Router>
+        </ChatProvider>
+      </LanguageProvider>
+    </AuthProvider>
   );
 }
 

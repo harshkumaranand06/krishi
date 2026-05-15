@@ -143,21 +143,25 @@ export default function Home() {
                         icon={<Scan />}
                         title={t.features[0].title}
                         desc={t.features[0].desc}
+                        link="/scan"
                     />
                     <FeatureCard
                         icon={<Activity />}
                         title={t.features[1].title}
                         desc={t.features[1].desc}
+                        link="/market"
                     />
                     <FeatureCard
                         icon={<Smartphone />}
                         title={t.features[2].title}
                         desc={t.features[2].desc}
+                        link="/scan"
                     />
                     <FeatureCard
                         icon={<Shield />}
                         title={t.features[3].title}
                         desc={t.features[3].desc}
+                        link="/community"
                     />
                 </div>
             </section>
@@ -174,12 +178,13 @@ function StatCard({ number, label }) {
     );
 }
 
-function FeatureCard({ icon, title, desc }) {
+function FeatureCard({ icon, title, desc, link }) {
     return (
-        <div className="feature-card glass-card">
+        <Link to={link} className="feature-card glass-card" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="feature-icon">{icon}</div>
             <h3>{title}</h3>
             <p>{desc}</p>
-        </div>
+        </Link>
     );
 }
+

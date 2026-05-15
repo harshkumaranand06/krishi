@@ -1,0 +1,54 @@
+.expert-register-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 100px);
+    padding: 2rem;
+}
+
+.register-box {
+    width: 100%;
+    max-width: 500px;
+    padding: 3rem 2rem;
+    border-radius: 20px;
+}
+
+.register-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.register-header h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+}
+
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.align-top {
+    align-items: flex-start !important;
+}
+
+.textarea-icon {
+    margin-top: 12px;
+}
+
+.register-form textarea {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    width: 100%;
+    font-size: 1rem;
+    padding: 10px 0;
+    resize: vertical;
+}
+
+.mt-4 {
+    margin-top: 1.5rem;
+}

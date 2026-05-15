@@ -4,10 +4,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './Market.css';
 
 const DUMMY_PRODUCTS = [
-    { id: 1, name: "Organic Urea Fertilizer", category: "Fertilizer", price: "₹450/kg", seller: "Ramesh Kumar", type: "sell" },
-    { id: 2, name: "Fresh Tomatoes (Hybrid)", category: "Vegetables", price: "₹40/kg", seller: "Suresh Farm", type: "sell" },
-    { id: 3, name: "Pesticide Sprayer (5L)", category: "Equipment", price: "₹1200", seller: "Agri Tools Co.", type: "sell" },
-    { id: 4, name: "Vermicompost Pack", category: "Fertilizer", price: "₹200/kg", seller: "Green Earth", type: "sell" },
+    // Fertilizers
+    { id: 1, name: "Organic Urea Fertilizer", category: "Fertilizer", price: "₹450/kg", seller: "Ramesh Kumar", type: "sell", image: "/products/organic_fertilizer_1765751087685.png" },
+    { id: 2, name: "Vermicompost Pack", category: "Fertilizer", price: "₹200/kg", seller: "Green Earth", type: "sell", image: "/products/vermicompost_pack_1765751103160.png" },
+    { id: 3, name: "Cow Dung Manure (Fresh)", category: "Fertilizer", price: "₹50/kg", seller: "Mohan Dairy Farm", type: "sell", image: "/products/cow_dung_manure_1765751118633.png" },
+    { id: 4, name: "NPK Complex Fertilizer", category: "Fertilizer", price: "₹850/kg", seller: "Agri Supplies", type: "sell" },
+    { id: 5, name: "Neem Cake Organic", category: "Fertilizer", price: "₹300/kg", seller: "Organic Farmers Co-op", type: "sell" },
+
+    // Equipment & Machines
+    { id: 6, name: "Pesticide Sprayer (5L)", category: "Equipment", price: "₹1200", seller: "Agri Tools Co.", type: "sell", image: "/products/pesticide_sprayer_1765751132561.png" },
+    { id: 7, name: "Mini Tiller Machine", category: "Equipment", price: "₹15,000", seller: "Farm Machinery Ltd", type: "sell", image: "/products/mini_tiller_1765751149103.png" },
+    { id: 8, name: "Drip Irrigation Kit", category: "Equipment", price: "₹3,500", seller: "Water Solutions", type: "sell", image: "/products/drip_irrigation_1765751163457.png" },
+    { id: 9, name: "Solar Water Pump", category: "Equipment", price: "₹25,000", seller: "Green Energy Systems", type: "sell", image: "/products/solar_pump_1765751250453.png" },
+    { id: 10, name: "Chaff Cutter Machine", category: "Equipment", price: "₹8,500", seller: "Agro Machines", type: "sell" },
+
+    // Vegetables
+    { id: 11, name: "Fresh Tomatoes (Hybrid)", category: "Vegetables", price: "₹40/kg", seller: "Suresh Farm", type: "sell", image: "/products/fresh_tomatoes_1765751186958.png" },
+    { id: 12, name: "Organic Potatoes", category: "Vegetables", price: "₹30/kg", seller: "Krishna Farms", type: "sell", image: "/products/organic_potatoes_1765751200867.png" },
+    { id: 13, name: "Fresh Onions (Red)", category: "Vegetables", price: "₹35/kg", seller: "Ravi Agriculture", type: "sell" },
+    { id: 14, name: "Green Chillies", category: "Vegetables", price: "₹60/kg", seller: "Spice Farmers", type: "sell" },
+    { id: 15, name: "Cabbage (Fresh)", category: "Vegetables", price: "₹25/kg", seller: "Vegetable Market", type: "sell" },
+
+    // Seeds
+    { id: 16, name: "Hybrid Tomato Seeds", category: "Seeds", price: "₹500/pack", seller: "Seed Bank India", type: "sell", image: "/products/tomato_seeds_1765751216105.png" },
+    { id: 17, name: "Wheat Seeds (HI-1544)", category: "Seeds", price: "₹800/kg", seller: "Government Seed Store", type: "sell" },
+    { id: 18, name: "Sunflower Seeds", category: "Seeds", price: "₹400/kg", seller: "Oil Seeds Co.", type: "sell" },
+
+    // Fruits
+    { id: 19, name: "Fresh Mangoes (Alphonso)", category: "Fruits", price: "₹150/kg", seller: "Mango Orchard", type: "sell", image: "/products/fresh_mangoes_1765751232803.png" },
+    { id: 20, name: "Bananas (Robusta)", category: "Fruits", price: "₹40/dozen", seller: "Banana Plantation", type: "sell" },
+
+    // Other
+    { id: 21, name: "Jute Bags (50kg capacity)", category: "Equipment", price: "₹25/piece", seller: "Packaging Supplies", type: "sell" },
+    { id: 22, name: "Organic Pesticide (Neem Oil)", category: "Fertilizer", price: "₹350/liter", seller: "Bio Pesticides", type: "sell" },
 ];
 
 export default function Market() {
@@ -180,7 +209,7 @@ export default function Market() {
                                 <input type="text" placeholder="Search vegetables, tools..." />
                             </div>
                             <div className="categories">
-                                {['All', 'Vegetables', 'Fertilizer', 'Equipment'].map(cat => (
+                                {['All', 'Vegetables', 'Fruits', 'Fertilizer', 'Equipment', 'Seeds'].map(cat => (
                                     <button
                                         key={cat}
                                         className={`cat-btn ${categories === cat ? 'active' : ''}`}
@@ -197,9 +226,31 @@ export default function Market() {
                                 .filter(p => categories === 'All' || p.category === categories)
                                 .map(product => (
                                     <div key={product.id} className="product-card glass">
-                                        <div className="product-img-placeholder">
+                                        {product.image ? (
+                                            <img
+                                                src={product.image}
+                                                alt={product.name}
+                                                className="product-img"
+                                                style={{
+                                                    width: '100%',
+                                                    height: '200px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: '12px 12px 0 0'
+                                                }}
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div
+                                            className="product-img-placeholder"
+                                            style={{ display: product.image ? 'none' : 'flex' }}
+                                        >
                                             {product.category === 'Vegetables' ? '🍅' :
-                                                product.category === 'Fertilizer' ? '🌱' : '⚙️'}
+                                                product.category === 'Fruits' ? '🥭' :
+                                                    product.category === 'Seeds' ? '🌾' :
+                                                        product.category === 'Fertilizer' ? '🌱' : '⚙️'}
                                         </div>
                                         <div className="product-info">
                                             <span className="badge-category">{product.category}</span>

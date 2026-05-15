@@ -6,7 +6,7 @@ Instant Diagnosis • Smart Remedies • Community Verified
 
 📖 Overview
 Krishi is a cutting-edge web application empowering farmers with AI-driven tools. leveraging computer vision to diagnose crop diseases instantly and providing scientifically backed remedies. With a focus on accessibility, Krishi operates offline and supports multiple local languages, bridging the gap between technology and traditional farming.
-
+![alt text](image.png)
 ✨ Key Features
 Feature	Description
 🤖 Instant Scan	Advanced AI identifies plant diseases from a simple photo in seconds.

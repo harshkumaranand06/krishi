@@ -128,6 +128,13 @@
     justify-content: flex-end;
 }
 
+/* Feed Section */
+.feed-section {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
 /* Posts */
 .posts-list {
     display: flex;

@@ -1,0 +1,174 @@
+.role-selection-page {
+    padding-top: 2rem;
+    padding-bottom: 5rem;
+    min-height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.role-cards {
+    display: flex;
+    gap: 2rem;
+    margin-top: 3rem;
+    max-width: 800px;
+    width: 100%;
+}
+
+.role-card {
+    flex: 1;
+    padding: 3rem 2rem;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid var(--glass-border);
+}
+
+.role-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgba(0, 230, 118, 0.2);
+    border-color: rgba(0, 230, 118, 0.4);
+}
+
+.role-icon {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.role-icon.farmer {
+    color: #00e676;
+    background: rgba(0, 230, 118, 0.1);
+}
+
+.role-icon.expert {
+    color: #00b0ff;
+    background: rgba(0, 176, 255, 0.1);
+}
+
+.role-card h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+
+.role-card p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .role-cards {
+        flex-direction: column;
+    }
+}
+
+.guest-section {
+    width: 100%;
+    max-width: 800px;
+    margin-top: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.guest-divider {
+    width: 100%;
+    text-align: center;
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.guest-divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 45%;
+    height: 1px;
+    background: var(--glass-border);
+}
+
+.guest-divider::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 45%;
+    height: 1px;
+    background: var(--glass-border);
+}
+
+.guest-divider span {
+    background: transparent;
+    padding: 0 1rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.guest-card {
+    width: 100%;
+    padding: 1.5rem 2rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid var(--glass-border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    color: var(--text-main);
+}
+
+.guest-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 176, 255, 0.15);
+    border-color: rgba(0, 176, 255, 0.4);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+.guest-icon {
+    padding: 1rem;
+    border-radius: 50%;
+    background: rgba(0, 176, 255, 0.1);
+    color: #00b0ff;
+    flex-shrink: 0;
+}
+
+.guest-text {
+    flex: 1;
+}
+
+.guest-text h2 {
+    font-size: 1.4rem;
+    margin: 0 0 0.4rem 0;
+}
+
+.guest-text p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.guest-action {
+    font-weight: 600;
+    color: #00b0ff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .guest-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+}

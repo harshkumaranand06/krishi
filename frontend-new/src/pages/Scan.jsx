@@ -73,6 +73,7 @@ export default function Scan() {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const { lang } = useLanguage();
     const fileInputRef = useRef(null);
+    const cameraInputRef = useRef(null);
 
     // Fallback to English if translation missing
     const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
@@ -91,37 +92,94 @@ export default function Scan() {
         }
     };
 
-    const startDiagnosis = () => {
-        setIsScanning(true);
-        // Simulate AI Processing Time
-        setTimeout(async () => {
-            // Dynamic Analysis with FileName support
-            const { analyzeDiseases, DISEASE_DATA } = await import('../data/plantDiseases');
-            const analysis = analyzeDiseases(image, fileName);
+    const handleCameraCapture = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setFileName('camera_capture.jpg');
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImage(reader.result);
+                setResult(null);
+                setShowInvalidPopup(false);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
-            if (analysis.key === 'not_plant') {
+    const ML_API_URL = 'http://localhost:8000/predict';
+
+    const startDiagnosis = async () => {
+        setIsScanning(true);
+
+        const { DISEASE_DATA } = await import('../data/plantDiseases');
+
+        // ── Helper: build result object from disease key + confidence ──
+        const buildResult = (diseaseKey, confidence) => {
+            const data = (DISEASE_DATA[diseaseKey]?.[lang])
+                      || (DISEASE_DATA[diseaseKey]?.['en'])
+                      || DISEASE_DATA['tomato_early_blight']['en'];
+            return {
+                disease:        data.disease,
+                confidence:     Math.round(confidence),
+                healthy:        diseaseKey === 'healthy',
+                description:    data.description,
+                harmful_effect: data.harmful_effect,
+                economic_impact:data.economic_impact,
+                immediate_action:data.immediate_action,
+                doctor_advice:  data.doctor_advice,
+                precautions:    data.precautions,
+                treatments:     data.treatments
+            };
+        };
+
+        // ── PATH A: Call the real PlantVillage ML API ─────────────────
+        try {
+            // Convert base64 image string → Blob → FormData
+            const res      = await fetch(image);
+            const blob     = await res.blob();
+            const formData = new FormData();
+            formData.append('file', blob, fileName || 'leaf.jpg');
+
+            const apiRes  = await fetch(ML_API_URL, {
+                method:  'POST',
+                body:    formData,
+                signal:  AbortSignal.timeout(15000)   // 15s timeout
+            });
+
+            if (!apiRes.ok) throw new Error(`ML API error: ${apiRes.status}`);
+
+            const prediction = await apiRes.json();
+
+            // Check if model thinks it's not a plant (very low confidence)
+            if (prediction.confidence < 0.30) {
                 setIsScanning(false);
                 setShowInvalidPopup(true);
                 return;
             }
 
-            // Get data in current language
-            const data = DISEASE_DATA[analysis.key][lang] || DISEASE_DATA[analysis.key]['en'];
-
-            setResult({
-                disease: data.disease,
-                confidence: analysis.confidence,
-                healthy: analysis.key === 'healthy',
-                description: data.description,
-                harmful_effect: data.harmful_effect,
-                economic_impact: data.economic_impact,
-                immediate_action: data.immediate_action,
-                doctor_advice: data.doctor_advice,
-                precautions: data.precautions,
-                treatments: data.treatments
-            });
+            console.log(`✅ ML API: ${prediction.class_name} (${(prediction.confidence * 100).toFixed(1)}%)`);
+            setResult(buildResult(prediction.disease_key, prediction.confidence * 100));
             setIsScanning(false);
-        }, 3000);
+            return;
+
+        } catch (err) {
+            // ML server not running → fall back to offline method
+            console.warn('⚠️ ML API unavailable, using offline fallback:', err.message);
+        }
+
+        // ── PATH B: Offline fallback (hash-based) ─────────────────────
+        await new Promise(r => setTimeout(r, 2000)); // Simulate processing
+        const { analyzeDiseases } = await import('../data/plantDiseases');
+        const analysis = analyzeDiseases(image, fileName);
+
+        if (analysis.key === 'not_plant') {
+            setIsScanning(false);
+            setShowInvalidPopup(true);
+            return;
+        }
+
+        setResult(buildResult(analysis.key, analysis.confidence));
+        setIsScanning(false);
     };
 
     const resetScan = () => {
@@ -187,9 +245,23 @@ export default function Scan() {
                             ref={fileInputRef}
                             id="file-upload"
                         />
-                        <label htmlFor="file-upload" className="btn btn-primary upload-btn">
-                            <Upload size={20} /> {t.uploadBtn}
-                        </label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handleCameraCapture}
+                            className="hidden-input"
+                            ref={cameraInputRef}
+                            id="camera-capture"
+                        />
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            <label htmlFor="camera-capture" className="btn btn-primary upload-btn">
+                                <Camera size={20} /> {t.cameraBtn || 'Take Photo'}
+                            </label>
+                            <label htmlFor="file-upload" className="btn btn-secondary upload-btn">
+                                <Upload size={20} /> {t.uploadBtn}
+                            </label>
+                        </div>
                     </motion.div>
                 ) : (
                     <div className="analysis-container">
