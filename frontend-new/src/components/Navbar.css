@@ -193,3 +193,8 @@
     width: calc(100% - 2rem);
     text-align: center;
 }
+
+.mobile-lang-wrapper {
+    margin: 1rem;
+    width: calc(100% - 2rem);
+}

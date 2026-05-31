@@ -112,6 +112,26 @@ export default function Navbar() {
                                     {item.name}
                                 </Link>
                             ))}
+
+                            {/* Language Dropdown for Mobile */}
+                            <div className="nav-lang-wrapper mobile-lang-wrapper">
+                                <Globe size={18} className="nav-lang-icon" />
+                                <span className="nav-lang-text">{currentLang}</span>
+                                <ChevronDown size={14} className="nav-lang-arrow" />
+                                <select
+                                    value={lang}
+                                    onChange={(e) => {
+                                        setLang(e.target.value);
+                                        setIsOpen(false);
+                                    }}
+                                    className="nav-lang-select-overlay"
+                                >
+                                    {LANGUAGES.map(l => (
+                                        <option key={l.code} value={l.code}>{l.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {currentUser ? (
                                 <button className="auth-btn mobile-auth" onClick={handleLogout}>Logout</button>
                             ) : (
