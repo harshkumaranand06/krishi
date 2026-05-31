@@ -22,7 +22,14 @@ const TRANSLATIONS = {
         critical: "Critical Issue",
         confidence: "Confidence",
         listenSummary: "Listen to Summary",
-        stopAudio: "Stop Audio"
+        stopAudio: "Stop Audio",
+        networkOnline: "Network Status: Online",
+        networkOffline: "Network Status: Offline",
+        modelOfflineReady: "Offline Ready ⚡",
+        modelNotLoaded: "Offline scan not loaded. Download recommended (13.5MB).",
+        downloadModelBtn: "Download Offline Model",
+        downloadingModel: "Downloading offline model...",
+        offlineInferenceBadge: "Offline Local Scan"
     },
     hi: {
         title: "पत्ती की फोटो अपलोड करें",
@@ -41,7 +48,14 @@ const TRANSLATIONS = {
         critical: "गंभीर समस्या",
         confidence: "सटीकता",
         listenSummary: "सारांश सुनें",
-        stopAudio: "ऑडियो बंद करें"
+        stopAudio: "ऑडियो बंद करें",
+        networkOnline: "नेटवर्क: ऑनलाइन",
+        networkOffline: "नेटवर्क: ऑफलाइन",
+        modelOfflineReady: "ऑफ़लाइन स्कैन तैयार ⚡",
+        modelNotLoaded: "ऑफ़लाइन स्कैन लोड नहीं है। डाउनलोड करें (13.5MB)।",
+        downloadModelBtn: "ऑफ़लाइन मॉडल डाउनलोड करें",
+        downloadingModel: "ऑफ़लाइन मॉडल डाउनलोड हो रहा है...",
+        offlineInferenceBadge: "ऑफ़लाइन स्थानीय स्कैन"
     },
     kn: {
         title: "ಎಲೆ ಚಿತ್ರವನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
@@ -60,7 +74,14 @@ const TRANSLATIONS = {
         critical: "ಗಂಭೀರ ಸಮಸ್ಯೆ",
         confidence: "ವಿಶ್ವಾಸಾರ್ಹತೆ",
         listenSummary: "ಸಾರಾಂಶವನ್ನು ಕೇಳಿ",
-        stopAudio: "ಆಡಿಯೋ ನಿಲ್ಲಿಸಿ"
+        stopAudio: "ಆಡಿಯೋ ನಿಲ್ಲಿಸಿ",
+        networkOnline: "ನೆಟ್‌ವರ್ಕ್: ಆನ್‌ಲೈನ್",
+        networkOffline: "ನೆಟ್‌ವರ್ಕ್: ಆಫ್‌ಲೈನ್",
+        modelOfflineReady: "ಆಫ್‌ಲೈನ್ ಸಿದ್ಧವಾಗಿದೆ ⚡",
+        modelNotLoaded: "ಆಫ್‌ಲೈನ್ ಸ್ಕ್ಯಾನ್ ಲೋಡ್ ಆಗಿಲ್ಲ. ಡೌನ್‌ಲೋಡ್ ಮಾಡಲು ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ (13.5MB).",
+        downloadModelBtn: "ಆಫ್‌ಲೈನ್ ಮಾಡೆಲ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ",
+        downloadingModel: "ಆಫ್‌ಲೈನ್ ಮಾಡೆಲ್ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+        offlineInferenceBadge: "ಆಫ್‌ಲೈನ್ ಸ್ಥಳೀಯ ಸ್ಕ್ಯಾನ್"
     }
 };
 
@@ -71,9 +92,58 @@ export default function Scan() {
     const [isScanning, setIsScanning] = useState(false);
     const [result, setResult] = useState(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    
+    // Offline capabilities states
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [modelState, setModelState] = useState('unloaded'); // 'unloaded', 'downloading', 'ready', 'error'
+    const [downloadProgress, setDownloadProgress] = useState(0);
+
     const { lang } = useLanguage();
     const fileInputRef = useRef(null);
     const cameraInputRef = useRef(null);
+
+    // Auto check cache and add network listeners
+    React.useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        const checkCache = async () => {
+            try {
+                const { isModelCached } = await import('../utils/tfjsModel');
+                const cached = await isModelCached();
+                if (cached) {
+                    setModelState('ready');
+                }
+            } catch (err) {
+                console.error("Error checking model cache:", err);
+            }
+        };
+
+        checkCache();
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    const downloadOfflineModel = async () => {
+        setModelState('downloading');
+        setDownloadProgress(0);
+        try {
+            const { loadTFJSModel } = await import('../utils/tfjsModel');
+            await loadTFJSModel((progress) => {
+                setDownloadProgress(progress);
+            });
+            setModelState('ready');
+        } catch (err) {
+            console.error("Failed to download model:", err);
+            setModelState('error');
+        }
+    };
 
     // Fallback to English if translation missing
     const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
@@ -164,10 +234,54 @@ export default function Scan() {
 
         } catch (err) {
             // ML server not running → fall back to offline method
-            console.warn('⚠️ ML API unavailable, using offline fallback:', err.message);
+            console.warn('⚠️ ML API unavailable, attempting offline TF.js inference:', err.message);
         }
 
-        // ── PATH B: Offline fallback (hash-based) ─────────────────────
+        // ── PATH B: Real Browser-Side Offline TF.JS Inference ───────────
+        try {
+            const { isModelCached, loadTFJSModel, runLocalInference } = await import('../utils/tfjsModel');
+            const isCached = await isModelCached();
+
+            if (isCached || modelState === 'ready') {
+                console.log('⚡ Running browser-side local offline TF.js inference...');
+
+                // Ensure model is loaded in memory
+                await loadTFJSModel();
+
+                // Load base64 image into HTML Image object for canvas extraction
+                const imgEl = new Image();
+                imgEl.src = image;
+                await new Promise((resolve, reject) => {
+                    imgEl.onload = resolve;
+                    imgEl.onerror = (e) => reject(new Error('Failed to load image element for TF.js'));
+                });
+
+                const prediction = await runLocalInference(imgEl);
+
+                if (prediction.confidence < 0.30) {
+                    setIsScanning(false);
+                    setShowInvalidPopup(true);
+                    return;
+                }
+
+                console.log(`✅ TF.js Browser Prediction: ${prediction.class_name} (${(prediction.confidence * 100).toFixed(1)}%)`);
+
+                // Construct result structure with an extra flag showing it was processed locally
+                const resObj = buildResult(prediction.disease_key, prediction.confidence * 100);
+                resObj.is_local = true;
+                resObj.inference_time_ms = prediction.inference_time_ms;
+                resObj.raw_class = prediction.class_name;
+                resObj.top3 = prediction.top3;
+
+                setResult(resObj);
+                setIsScanning(false);
+                return;
+            }
+        } catch (localErr) {
+            console.error('❌ TF.js browser inference failed:', localErr);
+        }
+
+        // ── PATH C: Offline fallback (hash-based) ─────────────────────
         await new Promise(r => setTimeout(r, 2000)); // Simulate processing
         const { analyzeDiseases } = await import('../data/plantDiseases');
         const analysis = analyzeDiseases(image, fileName);
@@ -237,6 +351,126 @@ export default function Scan() {
                         <h2>{t.title}</h2>
                         <p>{t.subtitle}</p>
 
+                        {/* Offline Capabilities Card */}
+                        <div className="offline-control-card glass-panel" style={{
+                            margin: '2rem auto',
+                            maxWidth: '500px',
+                            padding: '1.25rem',
+                            borderRadius: '12px',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            textAlign: 'left',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.75rem'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Globe size={16} style={{ color: isOnline ? '#00e676' : '#fbbf24' }} />
+                                    {isOnline ? t.networkOnline : t.networkOffline}
+                                </span>
+                                {modelState === 'ready' ? (
+                                    <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        background: 'rgba(0, 230, 118, 0.1)',
+                                        color: '#00e676',
+                                        padding: '0.25rem 0.75rem',
+                                        borderRadius: '20px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '700'
+                                    }}>
+                                        <CheckCircle size={14} /> {t.modelOfflineReady}
+                                    </span>
+                                ) : (
+                                    <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        background: 'rgba(251, 191, 36, 0.1)',
+                                        color: '#fbbf24',
+                                        padding: '0.25rem 0.75rem',
+                                        borderRadius: '20px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '700'
+                                    }}>
+                                        ⚠️ Offline Disabled
+                                    </span>
+                                )}
+                            </div>
+
+                            {modelState === 'unloaded' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', lineHeight: '1.4' }}>
+                                        {t.modelNotLoaded}
+                                    </p>
+                                    <button 
+                                        onClick={downloadOfflineModel}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ 
+                                            alignSelf: 'flex-start',
+                                            padding: '0.5rem 1rem',
+                                            fontSize: '0.85rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            cursor: 'pointer',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            color: '#fff',
+                                            borderRadius: '6px'
+                                        }}
+                                    >
+                                        <Upload size={14} style={{ transform: 'rotate(180deg)' }} />
+                                        {t.downloadModelBtn}
+                                    </button>
+                                </div>
+                            )}
+
+                            {modelState === 'downloading' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
+                                        <span>{t.downloadingModel}</span>
+                                        <span style={{ fontWeight: '700', color: '#00e676' }}>{downloadProgress}%</span>
+                                    </div>
+                                    <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                                        <div style={{ width: `${downloadProgress}%`, height: '100%', background: '#00e676', borderRadius: '3px', transition: 'width 0.1s ease' }} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {modelState === 'ready' && (
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(0, 230, 118, 0.7)', lineHeight: '1.4' }}>
+                                    Model is securely saved in your browser storage (IndexedDB). You can safely close your connection and scan leaves in the fields completely offline!
+                                </p>
+                            )}
+
+                            {modelState === 'error' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#ff5555', lineHeight: '1.4' }}>
+                                        Failed to download the local model. Please verify your connection or serve the TF.js model files from the public folder.
+                                    </p>
+                                    <button 
+                                        onClick={downloadOfflineModel}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ 
+                                            alignSelf: 'flex-start',
+                                            padding: '0.5rem 1rem',
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            color: '#fff',
+                                            borderRadius: '6px'
+                                        }}
+                                    >
+                                        Try Again
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
                         <input
                             type="file"
                             accept="image/*"
@@ -303,7 +537,25 @@ export default function Scan() {
                                         </div>
                                         <div className="disease-info">
                                             <h3>{result.disease}</h3>
-                                            <span className="badge-danger"><AlertTriangle size={14} /> {t.critical}</span>
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                                                <span className="badge-danger"><AlertTriangle size={14} /> {t.critical}</span>
+                                                {result.is_local && (
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.3rem',
+                                                        background: 'rgba(96, 165, 250, 0.15)',
+                                                        color: '#60a5fa',
+                                                        padding: '0.2rem 0.6rem',
+                                                        border: '1px solid rgba(96, 165, 250, 0.25)',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: '600'
+                                                    }}>
+                                                        ⚡ {t.offlineInferenceBadge} ({result.inference_time_ms}ms)
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Voice Summary Button */}
@@ -374,6 +626,37 @@ export default function Scan() {
                                             ))}
                                         </ul>
                                     </div>
+
+                                    {/* Developer Diagnostics Box */}
+                                    {result.is_local && result.top3 && (
+                                        <div className="glass-panel" style={{
+                                            margin: '1.5rem 0',
+                                            padding: '1rem',
+                                            borderRadius: '8px',
+                                            background: 'rgba(255, 255, 255, 0.02)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            fontSize: '0.85rem',
+                                            textAlign: 'left'
+                                        }}>
+                                            <h5 style={{ margin: '0 0 0.5rem 0', color: '#ffc107', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px' }}>
+                                                🛠️ Developer Diagnostics (Model Output)
+                                            </h5>
+                                            <p style={{ margin: '0 0 0.5rem 0', color: 'rgba(255,255,255,0.6)' }}>
+                                                The local model output has 6 classes. Below are the raw nodes and confidences predicted by the browser:
+                                            </p>
+                                            <ul style={{ margin: 0, paddingLeft: '1.25rem', color: 'rgba(255,255,255,0.8)' }}>
+                                                {result.top3.map((pred, idx) => (
+                                                    <li key={idx} style={{ marginBottom: '0.5rem' }}>
+                                                        Node <strong>Index {pred.index}</strong>: <span style={{ color: '#00e676', fontWeight: 'bold' }}>{(pred.confidence * 100).toFixed(2)}%</span>
+                                                        <br />
+                                                        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+                                                            Fallback class name: "{pred.class}" (maps to key: "{pred.disease_key}")
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
 
                                     <button onClick={resetScan} className="btn btn-glass full-width">
                                         {t.scanAnother}

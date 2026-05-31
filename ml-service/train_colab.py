@@ -329,12 +329,39 @@ print(f"   Confidence:      {pred_confidence * 100:.2f}%")
 print(f"   Match: {'✅ YES' if pred_class_idx == true_class_idx else '❌ NO'}")
 
 # ─────────────────────────────────────────────────────────────
-# CELL 10: Download files from Colab
+# CELL 10: Convert model to TensorFlow.js format
+# ─────────────────────────────────────────────────────────────
+"""
+# Install tensorflowjs converter
+!pip install -q tensorflowjs
+
+import tensorflowjs as tfjs
+import os
+import shutil
+
+# Convert the saved Keras model (.h5) to TF.js Layers format
+tfjs_target_dir = '/content/tfjs_model'
+os.makedirs(tfjs_target_dir, exist_ok=True)
+
+# Convert model
+tfjs.converters.save_keras_model(model, tfjs_target_dir)
+print("✅ Model converted to TensorFlow.js format!")
+
+# Also copy class_order.json inside the model directory for bundle completeness
+shutil.copy('/content/class_order.json', os.path.join(tfjs_target_dir, 'class_order.json'))
+
+# Zip the tfjs_model directory for easy download
+shutil.make_archive('/content/tfjs_model', 'zip', tfjs_target_dir)
+print("✅ Compressed TF.js model files to /content/tfjs_model.zip")
+"""
+
+# ─────────────────────────────────────────────────────────────
+# CELL 11: Download all files from Colab
 # ─────────────────────────────────────────────────────────────
 """
 from google.colab import files
 
-# Download the trained model
+# Download the Keras model (for the FastAPI service)
 files.download('/content/plant_model.h5')
 
 # Download the class order
@@ -343,10 +370,15 @@ files.download('/content/class_order.json')
 # Download the training plot
 files.download('/content/training_history.png')
 
-print("✅ Files downloaded!")
-print("📌 Next steps:")
-print("   1. Place plant_model.h5   → Krishi/ml-service/model/plant_model.h5")
-print("   2. Place class_order.json → Krishi/ml-service/model/class_order.json")
-print("   3. Run: cd Krishi/ml-service && pip install -r requirements.txt")
-print("   4. Run: uvicorn main:app --reload --port 8000")
+# Download the TensorFlow.js model (for offline web browser inference)
+files.download('/content/tfjs_model.zip')
+
+print("✅ Files downloading!")
+print("📌 Next steps for Offline capability:")
+print("   1. Extract tfjs_model.zip into your React app's public directory:")
+print("      → Krishi/frontend-new/public/model/")
+print("      (Should contain model.json, class_order.json, and group1-shard*of* weight files)")
+print("   2. Place plant_model.h5   → Krishi/ml-service/model/plant_model.h5")
+print("   3. Place class_order.json → Krishi/ml-service/model/class_order.json")
+print("   4. Run ml-service: cd Krishi/ml-service && uvicorn main:app --reload --port 8000")
 """
