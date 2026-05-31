@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head><title>Krishi TTS Test</title></head>
+<body style="background:#1a1a2e;color:#fff;font-family:sans-serif;padding:2rem;">
+<h2>🎙️ Krishi TTS Diagnostic Test (Web Speech API)</h2>
+<p>Google Translate TTS is blocked. Testing Web Speech API only:</p>
+
+<button onclick="testSpeech('en-US', 'Disease detected. Tomato Early Blight. Confidence ninety five percent. Remove infected leaves immediately.')" style="padding:12px 24px;margin:8px;font-size:16px;cursor:pointer;background:#10b981;border:none;color:#fff;border-radius:8px;">
+    🔊 Test English
+</button><br>
+
+<button onclick="testSpeech('hi-IN', 'रोग की पहचान हुई है। टमाटर का अगेती झुलसा। सटीकता पंचानवे प्रतिशत। संक्रमित पत्तियाँ हटाएं।')" style="padding:12px 24px;margin:8px;font-size:16px;cursor:pointer;background:#f59e0b;border:none;color:#fff;border-radius:8px;">
+    🔊 Test Hindi
+</button><br>
+
+<button onclick="testSpeech('kn-IN', 'ರೋಗ ಪತ್ತೆಯಾಗಿದೆ. ಟೊಮೆಟೊ ಮುಂಚಿನ ರೋಗ. ವಿಶ್ವಾಸಾರ್ಹತೆ ತೊಂಬತ್ತೈದು ಶೇಕಡಾ. ಸೋಂಕಿತ ಎಲೆ ತೆಗೆಯಿರಿ.')" style="padding:12px 24px;margin:8px;font-size:16px;cursor:pointer;background:#ef4444;border:none;color:#fff;border-radius:8px;">
+    🔊 Test Kannada
+</button><br>
+
+<button onclick="testKannadaWithHindiVoice()" style="padding:12px 24px;margin:8px;font-size:16px;cursor:pointer;background:#a855f7;border:none;color:#fff;border-radius:8px;">
+    🔊 Test Kannada text with Hindi voice (fallback)
+</button><br><br>
+
+<button onclick="listVoices()" style="padding:12px 24px;margin:8px;font-size:16px;cursor:pointer;background:#64748b;border:none;color:#fff;border-radius:8px;">
+    📋 List All Available Voices
+</button>
+
+<div id="log" style="margin-top:2rem;padding:1rem;background:rgba(255,255,255,0.05);border-radius:8px;font-family:monospace;font-size:14px;white-space:pre-wrap;max-height:500px;overflow-y:auto;"></div>
+
+<script>
+function log(msg) {
+    const el = document.getElementById('log');
+    el.textContent += new Date().toLocaleTimeString() + ' | ' + msg + '\n';
+    el.scrollTop = el.scrollHeight;
+}
+
+function testSpeech(lang, text) {
+    log(`\n--- Web Speech API Test: ${lang} ---`);
+    log(`Text: "${text}"`);
+    
+    window.speechSynthesis.cancel();
+    
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang;
+    utter.rate = 0.9;
+    
+    const voices = window.speechSynthesis.getVoices();
+    const primary = lang.split('-')[0].toLowerCase();
+    
+    // Try exact match first, then prefix
+    let match = voices.find(v => v.lang.toLowerCase().replace('_','-') === lang.toLowerCase());
+    if (!match) match = voices.find(v => v.lang.toLowerCase().startsWith(primary) && v.name.includes('Google'));
+    if (!match) match = voices.find(v => v.lang.toLowerCase().startsWith(primary));
+    
+    if (match) {
+        utter.voice = match;
+        log(`✅ Using voice: ${match.name} (${match.lang}) [${match.localService ? 'local' : 'remote'}]`);
+    } else {
+        log(`❌ NO voice found for '${lang}'!`);
+        log(`This language cannot speak. You need to install the voice pack.`);
+        return;
+    }
+    
+    utter.onend = () => log(`✅ Finished speaking (${lang})!`);
+    utter.onerror = (e) => log(`❌ Error: ${e.error}`);
+    
+    window.speechSynthesis.speak(utter);
+    log(`▶️ Speaking...`);
+}
+
+function testKannadaWithHindiVoice() {
+    log(`\n--- Kannada text with Hindi voice (fallback test) ---`);
+    const text = 'ರೋಗ ಪತ್ತೆಯಾಗಿದೆ. ಟೊಮೆಟೊ ಮುಂಚಿನ ರೋಗ.';
+    log(`Text: "${text}"`);
+    
+    window.speechSynthesis.cancel();
+    
+    const voices = window.speechSynthesis.getVoices();
+    let hiVoice = voices.find(v => v.lang.toLowerCase().startsWith('hi'));
+    
+    if (!hiVoice) {
+        log(`❌ No Hindi voice either. Cannot use as fallback.`);
+        return;
+    }
+    
+    log(`Using Hindi voice: ${hiVoice.name} to speak Kannada script`);
+    
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'hi-IN';
+    utter.voice = hiVoice;
+    utter.rate = 0.9;
+    
+    utter.onend = () => log(`✅ Finished! Did it pronounce the Kannada text?`);
+    utter.onerror = (e) => log(`❌ Error: ${e.error}`);
+    
+    window.speechSynthesis.speak(utter);
+    log(`▶️ Speaking Kannada text with Hindi voice...`);
+}
+
+function listVoices() {
+    const voices = window.speechSynthesis.getVoices();
+    log(`\n=== All ${voices.length} Available Voices ===`);
+    
+    const groups = {};
+    voices.forEach(v => {
+        const lang = v.lang.split('-')[0];
+        if (!groups[lang]) groups[lang] = [];
+        groups[lang].push(v);
+    });
+    
+    // Check specifically for kn
+    const kn = groups['kn'] || [];
+    const hi = groups['hi'] || [];
+    const en = groups['en'] || [];
+    
+    log(`\nEnglish voices (${en.length}):`);
+    en.forEach(v => log(`  📢 ${v.name} | ${v.lang} | ${v.localService ? 'LOCAL' : 'CLOUD'}`));
+    
+    log(`\nHindi voices (${hi.length}):`);
+    hi.forEach(v => log(`  📢 ${v.name} | ${v.lang} | ${v.localService ? 'LOCAL' : 'CLOUD'}`));
+    
+    log(`\nKannada voices (${kn.length}):`);
+    if (kn.length > 0) {
+        kn.forEach(v => log(`  📢 ${v.name} | ${v.lang} | ${v.localService ? 'LOCAL' : 'CLOUD'}`));
+    } else {
+        log(`  ❌ NONE FOUND!`);
+        log(`  To install Kannada TTS voice on Windows:`);
+        log(`  1. Open Windows Settings`);
+        log(`  2. Go to Time & Language → Language & Region`);
+        log(`  3. Click "Add a language" → Search "Kannada"`);
+        log(`  4. Make sure "Text-to-speech" is checked`);
+        log(`  5. Click Install, then restart Chrome`);
+    }
+    
+    log(`\nAll other languages:`);
+    Object.keys(groups).filter(k => !['en','hi','kn'].includes(k)).sort().forEach(lang => {
+        groups[lang].forEach(v => log(`  ${v.name} | ${v.lang}`));
+    });
+}
+
+// Pre-load voices
+window.speechSynthesis.getVoices();
+window.speechSynthesis.onvoiceschanged = () => {
+    log('Voices loaded: ' + window.speechSynthesis.getVoices().length + ' available');
+};
+</script>
+</body>
+</html>

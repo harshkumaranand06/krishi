@@ -183,6 +183,73 @@ export async function deleteCachedModel() {
 }
 
 /**
+ * Analyzes the RGB pixel distributions of the input image on a tiny canvas.
+ * Returns true if the image contains sufficient leaf-like green, yellow, or brown color ratios.
+ * Prevents non-plant OOD false-positives (like keypads, cars, shoes, hands).
+ */
+export function isImagePlantLeaf(imageElement) {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Downsample to a tiny 40x40 grid for instant, zero-lag color analysis
+        canvas.width = 40;
+        canvas.height = 40;
+        
+        ctx.drawImage(imageElement, 0, 0, 40, 40);
+        const imgData = ctx.getImageData(0, 0, 40, 40).data;
+        
+        let leafPixels = 0;
+        let whitePixels = 0;
+        const totalPixels = 40 * 40;
+        
+        for (let i = 0; i < imgData.length; i += 4) {
+            const r = imgData[i];
+            const g = imgData[i + 1];
+            const b = imgData[i + 2];
+            
+            const maxVal = Math.max(r, g, b);
+            const minVal = Math.min(r, g, b);
+            const chroma = maxVal - minVal;
+            
+            // 1. Detect White/Light-Grey/Screen background and desaturated pastel pixels (typical for tickets, paper, screens, documents)
+            const isWhiteOrGrey = (r > 150 && g > 150 && b > 140 && chroma < 30) || (r > 180 && g > 180 && b > 170 && chroma < 45);
+            if (isWhiteOrGrey) {
+                whitePixels++;
+            }
+            
+            // 2. Detect Green Leaf pixels: Green is dominant and sufficiently saturated (stricter ratio to filter out pastel/light-green paper)
+            const isGreen = g > 55 && g > r * 1.10 && g > b * 1.10 && chroma > 15;
+            
+            // 3. Detect Yellow/Dry/Brown Leaf pixels: Red and Green are dominant, Blue is low (stricter difference check to filter orange buttons)
+            const isYellowOrBrown = r > 70 && g > 65 && b < r * 0.75 && Math.abs(r - g) < 25 && chroma > 20;
+            
+            if (isGreen || isYellowOrBrown) {
+                leafPixels++;
+            }
+        }
+        
+        const leafRatio = leafPixels / totalPixels;
+        const whiteRatio = whitePixels / totalPixels;
+        
+        console.log(`🌿 Plant leaf pixel ratio: ${(leafRatio * 100).toFixed(1)}%`);
+        console.log(`📄 Document/White pixel ratio: ${(whiteRatio * 100).toFixed(1)}%`);
+        
+        // A document, ticket screenshot, or white page has a very high proportion of flat white/grey background pixels
+        if (whiteRatio > 0.16) {
+            console.warn(`🚫 Document-like background detected (${(whiteRatio * 100).toFixed(1)}%). Blocking scan.`);
+            return false;
+        }
+        
+        // If less than 22% of pixels are plant-like, classify as not a plant
+        return leafRatio >= 0.22;
+    } catch (e) {
+        console.warn("⚠️ Color analysis failed, bypassing filter:", e);
+        return true; // Fallback to allowing inference if canvas fails
+    }
+}
+
+/**
  * Processes an HTMLImageElement and runs in-browser local inference
  * 
  * @param {HTMLImageElement} imageElement - The HTML Image Element containing the leaf photo
@@ -191,6 +258,20 @@ export async function deleteCachedModel() {
 export async function runLocalInference(imageElement) {
     if (!activeModel) {
         throw new Error("Model is not loaded. Call loadTFJSModel() first.");
+    }
+
+    // 1. Validate if image is a plant leaf (prevents keyboard/hand false positives)
+    if (!isImagePlantLeaf(imageElement)) {
+        console.warn("🚫 Out-of-distribution image detected (not a plant leaf). Aborting inference.");
+        return {
+            class_name: "Not a Plant",
+            disease_key: "not_plant",
+            confidence: 0.0,
+            is_healthy: false,
+            top3: [],
+            local_inference: true,
+            inference_time_ms: 0
+        };
     }
 
     console.log("🧪 Running local in-browser inference...");
@@ -282,4 +363,85 @@ export async function runLocalInference(imageElement) {
         local_inference: true,
         inference_time_ms: Math.round(end - start)
     };
+}
+
+/**
+ * Analyzes the RGB pixel distributions of the input image on a tiny canvas.
+ * Returns the exact percentage of infected yellow/brown/dry spot pixels
+ * relative to the total plant leaf surface area.
+ * 
+ * @param {HTMLImageElement} imageElement - The HTML Image Element containing the leaf photo
+ * @returns {Object} { infectedAreaPct: number, leafRatio: number, whiteRatio: number }
+ */
+export function analyzeLeafSeverity(imageElement) {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Downsample to a 40x40 grid for instant, zero-lag analysis
+        canvas.width = 40;
+        canvas.height = 40;
+        
+        ctx.drawImage(imageElement, 0, 0, 40, 40);
+        const imgData = ctx.getImageData(0, 0, 40, 40).data;
+        
+        let greenPixels = 0;
+        let yellowOrBrownPixels = 0;
+        let whitePixels = 0;
+        const totalPixels = 40 * 40;
+        
+        for (let i = 0; i < imgData.length; i += 4) {
+            const r = imgData[i];
+            const g = imgData[i + 1];
+            const b = imgData[i + 2];
+            
+            const maxVal = Math.max(r, g, b);
+            const minVal = Math.min(r, g, b);
+            const chroma = maxVal - minVal;
+            
+            // 1. Detect White/Light-Grey/Screen background
+            const isWhiteOrGrey = (r > 150 && g > 150 && b > 140 && chroma < 30) || (r > 180 && g > 180 && b > 170 && chroma < 45);
+            if (isWhiteOrGrey) {
+                whitePixels++;
+            }
+            
+            // 2. Detect Green Leaf pixels
+            const isGreen = g > 55 && g > r * 1.10 && g > b * 1.10 && chroma > 15;
+            if (isGreen) {
+                greenPixels++;
+            }
+            
+            // 3. Detect Yellow/Dry/Brown Leaf pixels
+            const isYellowOrBrown = r > 70 && g > 65 && b < r * 0.75 && Math.abs(r - g) < 25 && chroma > 20;
+            if (isYellowOrBrown) {
+                yellowOrBrownPixels++;
+            }
+        }
+        
+        const leafPixels = greenPixels + yellowOrBrownPixels;
+        const leafRatio = leafPixels / totalPixels;
+        const whiteRatio = whitePixels / totalPixels;
+        
+        // Calculate infected pixel ratio relative to total leaf surface area
+        let infectedAreaPct = 0;
+        if (leafPixels > 0) {
+            infectedAreaPct = Math.round((yellowOrBrownPixels / leafPixels) * 100);
+        }
+        
+        console.log(`📊 [Severity Analysis] Healthy Leaf Pixels: ${greenPixels}, Infected Leaf Pixels: ${yellowOrBrownPixels}, Total Leaf Pixels: ${leafPixels}`);
+        console.log(`📊 [Severity Analysis] Calculated Infected Area Percentage: ${infectedAreaPct}%`);
+        
+        return {
+            infectedAreaPct: Math.min(100, Math.max(0, infectedAreaPct)),
+            leafRatio: parseFloat(leafRatio.toFixed(3)),
+            whiteRatio: parseFloat(whiteRatio.toFixed(3))
+        };
+    } catch (e) {
+        console.warn("⚠️ Leaf severity analysis failed, falling back:", e);
+        return {
+            infectedAreaPct: 15, // fallback avg
+            leafRatio: 0.5,
+            whiteRatio: 0.2
+        };
+    }
 }

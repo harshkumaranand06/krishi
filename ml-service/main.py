@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     """Load model and class labels on server startup."""
     global model, class_names, disease_map
 
-    print("🚀 Loading Krishi ML model...")
+    print("Loading Krishi ML model...")
 
     # Load class_labels.json (disease key mapping)
     with open(CLASS_MAP_PATH, "r") as f:
@@ -48,25 +48,25 @@ async def lifespan(app: FastAPI):
     if os.path.exists(CLASS_ORD_PATH):
         with open(CLASS_ORD_PATH, "r") as f:
             class_names = json.load(f)
-        print(f"✅ Loaded class order from class_order.json ({len(class_names)} classes)")
+        print(f"Loaded class order from class_order.json ({len(class_names)} classes)")
     else:
         # Fallback: use order from class_labels.json
         class_names = label_data["classes"]
-        print(f"⚠️  class_order.json not found. Using default order ({len(class_names)} classes)")
+        print(f"class_order.json not found. Using default order ({len(class_names)} classes)")
 
     # Load the Keras model
     if os.path.exists(MODEL_PATH):
         model = tf.keras.models.load_model(MODEL_PATH)
-        print(f"✅ Model loaded: {MODEL_PATH}")
+        print(f"Model loaded: {MODEL_PATH}")
         print(f"   Input shape:  {model.input_shape}")
         print(f"   Output shape: {model.output_shape}")
     else:
-        print(f"❌ Model not found at: {MODEL_PATH}")
+        print(f"Model not found at: {MODEL_PATH}")
         print("   Please place your trained plant_model.h5 in ml-service/model/")
         print("   Running in DEMO mode — predictions will not be available.")
 
     yield  # Server is running
-    print("👋 Shutting down ML service...")
+    print("Shutting down ML service...")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -153,7 +153,7 @@ async def predict(file: UploadFile = File(...)):
     """
     # ── Validate model loaded ──────────────────────────────────
     if model is None:
-        print("⚠️ DEMO MODE: Returning mock prediction because model is not loaded.")
+        print("DEMO MODE: Returning mock prediction because model is not loaded.")
         return {
             "class_name":  "Tomato___Early_blight",
             "disease_key": "tomato_early_blight",
@@ -203,7 +203,7 @@ async def predict(file: UploadFile = File(...)):
         for i in top3_indices
     ]
 
-    print(f"🔍 Prediction: {class_name} ({confidence * 100:.1f}%)")
+    print(f"Prediction: {class_name} ({confidence * 100:.1f}%)")
 
     return {
         "class_name":  class_name,

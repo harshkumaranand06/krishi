@@ -1,5 +1,7 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
+import AnimatedPage from './components/AnimatedPage';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ChatBot from './components/ChatBot';
@@ -19,6 +21,26 @@ import { LanguageProvider } from './context/LanguageContext';
 import { ChatProvider } from './context/ChatContext';
 import { AuthProvider } from './context/AuthContext';
 
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<AnimatedPage><Home /></AnimatedPage>} />
+        <Route path="/login" element={<AnimatedPage><Login /></AnimatedPage>} />
+        <Route path="/scan" element={<AnimatedPage><Scan /></AnimatedPage>} />
+        <Route path="/market" element={<AnimatedPage><Market /></AnimatedPage>} />
+        <Route path="/community" element={<AnimatedPage><Community /></AnimatedPage>} />
+        <Route path="/consult" element={<AnimatedPage><Consult /></AnimatedPage>} />
+        <Route path="/role-selection" element={<AnimatedPage><RoleSelection /></AnimatedPage>} />
+        <Route path="/expert-register" element={<AnimatedPage><ExpertRegister /></AnimatedPage>} />
+        <Route path="/expert-dashboard" element={<AnimatedPage><ExpertDashboard /></AnimatedPage>} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -28,19 +50,10 @@ function App() {
             <div className="app-wrapper">
               <div className="sci-fi-grid"></div>
               <div className="ambient-glow"></div>
+              <div className="ambient-particles"></div>
               <Navbar />
               <main className="main-content">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/scan" element={<Scan />} />
-                  <Route path="/market" element={<Market />} />
-                  <Route path="/community" element={<Community />} />
-                  <Route path="/consult" element={<Consult />} />
-                  <Route path="/role-selection" element={<RoleSelection />} />
-                  <Route path="/expert-register" element={<ExpertRegister />} />
-                  <Route path="/expert-dashboard" element={<ExpertDashboard />} />
-                </Routes>
+                  <AnimatedRoutes />
               </main>
               <ChatBot />
               <Footer />
