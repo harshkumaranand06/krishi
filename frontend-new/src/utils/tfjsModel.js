@@ -154,17 +154,19 @@ export async function loadTFJSModel(onProgress = null) {
 async function loadClassOrder() {
     try {
         const response = await fetch(CLASS_ORDER_URL);
-        if (response.ok) {
+        const contentType = response.headers.get('content-type') || '';
+        if (response.ok && contentType.includes('application/json')) {
             const data = await response.json();
             if (Array.isArray(data) && data.length > 0) {
                 classOrderList = data;
-                console.log("✅ Loaded custom class order from class_order.json");
+                console.log(`✅ Loaded custom class order (${data.length} classes) from class_order.json`);
+                return;
             }
         }
     } catch (e) {
-        console.log("⚠️ Could not load custom class_order.json. Using standard 38-class ordering fallback.");
-        classOrderList = DEFAULT_CLASSES;
+        console.warn("⚠️ Could not load custom class_order.json:", e);
     }
+    console.log("ℹ️ Using standard class ordering fallback.");
 }
 
 /**
@@ -213,16 +215,16 @@ export function isImagePlantLeaf(imageElement) {
             const chroma = maxVal - minVal;
             
             // 1. Detect White/Light-Grey/Screen background and desaturated pastel pixels (typical for tickets, paper, screens, documents)
-            const isWhiteOrGrey = (r > 150 && g > 150 && b > 140 && chroma < 30) || (r > 180 && g > 180 && b > 170 && chroma < 45);
+            const isWhiteOrGrey = (r > 165 && g > 165 && b > 155 && chroma < 25) || (r > 200 && g > 200 && b > 190 && chroma < 35);
             if (isWhiteOrGrey) {
                 whitePixels++;
             }
             
-            // 2. Detect Green Leaf pixels: Green is dominant and sufficiently saturated (stricter ratio to filter out pastel/light-green paper)
-            const isGreen = g > 55 && g > r * 1.10 && g > b * 1.10 && chroma > 15;
+            // 2. Detect Green Leaf pixels: Green is dominant and sufficiently saturated
+            const isGreen = g > 50 && g > r * 1.05 && g > b * 1.05 && chroma > 12;
             
-            // 3. Detect Yellow/Dry/Brown Leaf pixels: Red and Green are dominant, Blue is low (stricter difference check to filter orange buttons)
-            const isYellowOrBrown = r > 70 && g > 65 && b < r * 0.75 && Math.abs(r - g) < 25 && chroma > 20;
+            // 3. Detect Yellow/Dry/Brown Leaf pixels: Red and Green are dominant, Blue is low
+            const isYellowOrBrown = r > 65 && g > 55 && b < r * 0.80 && Math.abs(r - g) < 30 && chroma > 15;
             
             if (isGreen || isYellowOrBrown) {
                 leafPixels++;
@@ -235,14 +237,14 @@ export function isImagePlantLeaf(imageElement) {
         console.log(`🌿 Plant leaf pixel ratio: ${(leafRatio * 100).toFixed(1)}%`);
         console.log(`📄 Document/White pixel ratio: ${(whiteRatio * 100).toFixed(1)}%`);
         
-        // A document, ticket screenshot, or white page has a very high proportion of flat white/grey background pixels
-        if (whiteRatio > 0.16) {
-            console.warn(`🚫 Document-like background detected (${(whiteRatio * 100).toFixed(1)}%). Blocking scan.`);
+        // A document, ticket screenshot, or blank page has an overwhelming white/grey ratio AND lacks leaf pixels
+        if (whiteRatio > 0.85 || (whiteRatio > 0.70 && leafRatio < 0.10)) {
+            console.warn(`🚫 Document-like background detected (${(whiteRatio * 100).toFixed(1)}% white, ${(leafRatio * 100).toFixed(1)}% leaf). Blocking scan.`);
             return false;
         }
         
-        // If less than 22% of pixels are plant-like, classify as not a plant
-        return leafRatio >= 0.22;
+        // If less than 12% of pixels are plant-like, classify as not a plant
+        return leafRatio >= 0.12;
     } catch (e) {
         console.warn("⚠️ Color analysis failed, bypassing filter:", e);
         return true; // Fallback to allowing inference if canvas fails
@@ -311,16 +313,31 @@ export async function runLocalInference(imageElement) {
 
     // Dynamically adjust the class order list based on the model's output layer shape!
     let activeClassList = classOrderList;
-    if (activeClassList === DEFAULT_CLASSES && probabilities.length === 6) {
-        activeClassList = [
-            "Potato___Early_blight",
-            "Potato___Late_blight",
-            "Potato___healthy",
-            "Tomato___Early_blight",
-            "Tomato___Late_blight",
-            "Tomato___healthy"
-        ];
-        console.log("⚡ Auto-detected 6-class Potato/Tomato model. Using correct class mapping.");
+    if (activeClassList.length !== probabilities.length) {
+        if (probabilities.length === 9) {
+            activeClassList = [
+                "Potato___Early_blight",
+                "Potato___Late_blight",
+                "Potato___healthy",
+                "Tomato___Bacterial_spot",
+                "Tomato___Early_blight",
+                "Tomato___Late_blight",
+                "Tomato___Leaf_Mold",
+                "Tomato___Septoria_leaf_spot",
+                "Tomato___healthy"
+            ];
+            console.log("⚡ Auto-detected 9-class Potato/Tomato model. Using correct class mapping.");
+        } else if (probabilities.length === 6) {
+            activeClassList = [
+                "Potato___Early_blight",
+                "Potato___Late_blight",
+                "Potato___healthy",
+                "Tomato___Early_blight",
+                "Tomato___Late_blight",
+                "Tomato___healthy"
+            ];
+            console.log("⚡ Auto-detected 6-class Potato/Tomato model. Using correct class mapping.");
+        }
     }
 
     const confidence = probabilities[predIdx];

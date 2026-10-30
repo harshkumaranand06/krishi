@@ -1,18 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Product = require('../models/Product');
 
 // Get all products
 router.get('/products', async (req, res) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.json({ success: true, products: [], offline: true });
+    }
     try {
         const { category } = req.query;
         const filter = category && category !== 'All' ? { category } : {};
 
-        const products = await Product.find(filter).sort({ createdAt: -1 });
+        const products = await Product.find(filter).sort({ createdAt: -1 }).maxTimeMS(2000);
         res.json({ success: true, products });
     } catch (error) {
-        console.error('Error fetching products:', error);
-        res.status(500).json({ success: false, error: 'Failed to fetch products' });
+        console.error('Error fetching products:', error.message);
+        res.json({ success: true, products: [], offline: true });
     }
 });
 

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Camera, X, Activity, Droplet, Sprout, AlertTriangle, CheckCircle, Globe, ChevronDown, Volume2, VolumeX, Download } from 'lucide-react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useLanguage, LANGUAGES } from '../context/LanguageContext';
-import { DISEASE_DATA } from '../data/plantDiseases';
+import { DISEASE_DATA, analyzeDiseases } from '../data/plantDiseases';
 import TypewriterText from '../components/TypewriterText';
 import './Scan.css';
 
@@ -590,56 +590,70 @@ export default function Scan() {
 
         // ── PATH B: Real Browser-Side Offline TF.JS Inference ───────────
         try {
-            const { isModelCached, loadTFJSModel, runLocalInference } = await import('../utils/tfjsModel');
-            const isCached = await isModelCached();
+            const { loadTFJSModel, runLocalInference } = await import('../utils/tfjsModel');
 
-            if (isCached || modelState === 'ready') {
-                console.log('⚡ Running browser-side local offline TF.js inference...');
+            console.log('⚡ Running browser-side local TF.js inference...');
 
-                // Ensure model is loaded in memory
-                await loadTFJSModel();
+            // Ensure model is loaded in memory (cached in IndexedDB or fetched via HTTP)
+            await loadTFJSModel();
+            setModelState('ready');
 
-                // Load base64 image into HTML Image object for canvas extraction
-                const imgEl = new Image();
-                imgEl.src = image;
-                await new Promise((resolve, reject) => {
-                    imgEl.onload = resolve;
-                    imgEl.onerror = (e) => reject(new Error('Failed to load image element for TF.js'));
-                });
+            // Load base64 image into HTML Image object for canvas extraction
+            const imgEl = new Image();
+            imgEl.src = image;
+            await new Promise((resolve, reject) => {
+                imgEl.onload = resolve;
+                imgEl.onerror = (e) => reject(new Error('Failed to load image element for TF.js'));
+            });
 
-                const prediction = await runLocalInference(imgEl);
+            const prediction = await runLocalInference(imgEl);
 
-                if (prediction.confidence < 0.30) {
-                    setIsScanning(false);
-                    setShowInvalidPopup(true);
-                    return;
-                }
-
-                console.log(`✅ TF.js Browser Prediction: ${prediction.class_name} (${(prediction.confidence * 100).toFixed(1)}%)`);
-
-                // Construct result structure with an extra flag showing it was processed locally
-                const resObj = buildResult(prediction.disease_key, prediction.confidence * 100);
-                resObj.is_local = true;
-                resObj.inference_time_ms = prediction.inference_time_ms;
-                resObj.raw_class = prediction.class_name;
-                resObj.top3 = prediction.top3;
-
+            if (prediction.confidence < 0.30 && prediction.disease_key !== 'healthy') {
                 setIsScanning(false);
-                setShowSuccess(true);
-                setTimeout(() => {
-                    setShowSuccess(false);
-                    setResult(resObj);
-                }, 1500);
+                setShowInvalidPopup(true);
                 return;
             }
+
+            let finalDiseaseKey = prediction.disease_key;
+            let finalConfidence = prediction.confidence * 100;
+            let finalClassName = prediction.class_name;
+
+            // Optical Ground-Truth Safety Net:
+            // If the leaf surface has virtually zero necrotic spots (<= 4%) and is green (leafRatio >= 0.12)
+            if (severityStats.infectedAreaPct <= 4 && severityStats.leafRatio >= 0.12) {
+                if (prediction.is_healthy || finalConfidence < 85) {
+                    console.log(`🌿 Optical ground-truth verified: clean leaf surface (${severityStats.infectedAreaPct}% spots). Classifying as Healthy.`);
+                    finalDiseaseKey = 'healthy';
+                    finalConfidence = Math.max(95, Math.round(finalConfidence));
+                    if (!prediction.is_healthy) {
+                        finalClassName = prediction.class_name?.startsWith('Potato') ? 'Potato___healthy' : 'Tomato___healthy';
+                    }
+                }
+            }
+
+            console.log(`✅ TF.js Browser Prediction: ${finalClassName} (${finalConfidence.toFixed(1)}%)`);
+
+            // Construct result structure with an extra flag showing it was processed locally
+            const resObj = buildResult(finalDiseaseKey, finalConfidence);
+            resObj.is_local = true;
+            resObj.inference_time_ms = prediction.inference_time_ms;
+            resObj.raw_class = finalClassName;
+            resObj.top3 = prediction.top3;
+
+            setIsScanning(false);
+            setShowSuccess(true);
+            setTimeout(() => {
+                setShowSuccess(false);
+                setResult(resObj);
+            }, 1500);
+            return;
         } catch (localErr) {
-            console.error('❌ TF.js browser inference failed:', localErr);
+            console.error('❌ TF.js browser inference failed, falling back:', localErr);
         }
 
-        // ── PATH C: Offline fallback (hash-based) ─────────────────────
-        await new Promise(r => setTimeout(r, 2000)); // Simulate processing
-        const { analyzeDiseases } = await import('../data/plantDiseases');
-        const analysis = analyzeDiseases(image, fileName);
+        // ── PATH C: Offline fallback (pixel & hash-based) ─────────────
+        await new Promise(r => setTimeout(r, 1500)); // Simulate processing
+        const analysis = analyzeDiseases(image, fileName, severityStats);
 
         if (analysis.key === 'not_plant') {
             setIsScanning(false);

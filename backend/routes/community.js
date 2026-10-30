@@ -1,15 +1,19 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Post = require('../models/Post');
 
 // Get all community posts
 router.get('/posts', async (req, res) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.json({ success: true, posts: [], offline: true });
+    }
     try {
-        const posts = await Post.find().sort({ createdAt: -1 });
+        const posts = await Post.find().sort({ createdAt: -1 }).maxTimeMS(2000);
         res.json({ success: true, posts });
     } catch (error) {
-        console.error('Error fetching posts:', error);
-        res.status(500).json({ success: false, error: 'Failed to fetch posts' });
+        console.error('Error fetching posts:', error.message);
+        res.json({ success: true, posts: [], offline: true });
     }
 });
 

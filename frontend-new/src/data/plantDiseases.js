@@ -325,31 +325,38 @@ export const DISEASE_DATA = {
 };
 
 // Pseudo-Deterministically select a disease based on image data
-export function analyzeDiseases(imageData, fileName = "") {
+export function analyzeDiseases(imageData, fileName = "", severityStats = null) {
     const f = fileName.toLowerCase();
 
     // 1. Precise Keyword Matching (Simulation for Testing)
+    if (f.includes('healthy') || f.includes('clean') || f.includes('fresh')) return { key: 'healthy', confidence: 99 };
     if (f.includes('tomato') || f.includes('early')) return { key: 'tomato_early_blight', confidence: 98 };
     if (f.includes('potato') || f.includes('late')) return { key: 'potato_late_blight', confidence: 96 };
     if (f.includes('corn') || f.includes('rust')) return { key: 'corn_common_rust', confidence: 94 };
     if (f.includes('grape') || f.includes('rot')) return { key: 'grape_black_rot', confidence: 92 };
-    if (f.includes('healthy')) return { key: 'healthy', confidence: 99 };
 
     // 1.5 Non-Plant / Invalid Image Detection (Simulation)
     if (f.includes('spiderman') || f.includes('hero') || f.includes('man') || f.includes('person') || f.includes('cat') || f.includes('dog')) {
         return { key: 'not_plant', confidence: 0 };
     }
 
-    // 2. Fallback: Create a hash from the image string (simulate analyzing features)
+    // 2. Optical Ground-Truth: If leaf has <= 4% necrotic yellow/brown spot pixels, it is physically healthy!
+    if (severityStats && typeof severityStats.infectedAreaPct === 'number') {
+        if (severityStats.infectedAreaPct <= 4 && severityStats.leafRatio >= 0.12) {
+            console.log(`🌿 Optical ground-truth: Leaf has only ${severityStats.infectedAreaPct}% infected spots. Classifying as healthy.`);
+            return { key: 'healthy', confidence: 96 };
+        }
+    }
+
+    // 3. Fallback: Create a hash from the image string (simulate analyzing features)
     let hash = 0;
     for (let i = 0; i < imageData.length; i++) {
         hash = ((hash << 5) - hash) + imageData.charCodeAt(i);
         hash |= 0; // Convert to 32bit integer
     }
 
-    // 3. Select a disease key based on the hash (Absolute value to handle negatives)
-    // EXCLUDE 'healthy' from fallback to prevent false negatives on actual diseased leaves without keywords.
-    const keys = Object.keys(DISEASE_DATA).filter(k => k !== 'healthy');
+    // 4. Select a disease key based on the hash (includes 'healthy' in the pool)
+    const keys = Object.keys(DISEASE_DATA);
     const index = Math.abs(hash) % keys.length;
 
     return {

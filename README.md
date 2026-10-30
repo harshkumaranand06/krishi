@@ -44,6 +44,11 @@ Beyond AI, Krishi bridges the gap between technology and traditional farming by 
 * **Authentication:** Firebase Auth (Phone OTP, Anonymous Sign-In)
 * **Legacy API:** Node.js / Express.js / MongoDB (For legacy features)
 
+**AI & Machine Learning:**
+* **Framework:** FastAPI (Python)
+* **Model:** TensorFlow / Keras (MobileNetV2)
+* **Task:** Plant disease classification
+
 ---
 
 ## 🚀 Application Flow
@@ -69,6 +74,9 @@ Krishi/
 ├── 🖥️ backend/               # Legacy API Server
 │   ├── models/               # Mongoose Schemas
 │   └── routes/               # API Endpoints
+├── 🧠 ml-service/            # FastAPI ML Server for AI Diagnosis
+│   ├── model/                # Pre-trained TensorFlow Models
+│   └── main.py               # Inference API
 └── 📄 README.md              # Project Documentation
 ```
 
@@ -108,6 +116,18 @@ Krishi/
 4. **Run the Application**
    ```bash
    npm run dev
+   ```
+
+5. **Run the ML Service (Optional, for AI Diagnosis)**
+   ```bash
+   cd ../ml-service
+   
+   # For Windows users:
+   start.bat
+   
+   # Or start manually:
+   pip install -r requirements.txt
+   uvicorn main:app --reload --port 8000
    ```
 
 ---

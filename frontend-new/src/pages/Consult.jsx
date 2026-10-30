@@ -137,8 +137,10 @@ export default function Consult() {
 
     const confirmRequest = async () => {
         if (!selectedRequestExpert || !currentUser) return;
-        const expertId = selectedRequestExpert.id;
-        const expertName = selectedRequestExpert.name;
+        const expert = selectedRequestExpert;
+        const expertId = expert.id;
+        const expertName = expert.name;
+        const isStaticDemoExpert = typeof expertId === 'number';
         
         try {
             await addDoc(collection(db, 'consultRequests'), {
@@ -148,17 +150,55 @@ export default function Consult() {
                 expertName: expertName,
                 issue: "General Crop Consultation",
                 crop: "Unknown",
-                status: "pending",
+                status: isStaticDemoExpert ? "approved" : "pending",
                 createdAt: serverTimestamp()
             });
 
             setSelectedRequestExpert(null);
-            showToast(`Request sent to ${expertName}.`);
 
-            // WhatsApp Notification
-            if (selectedRequestExpert.phone) {
-                const text = `Hello ${expertName}, I have requested a consultation with you on Krishi AI regarding my crops.`;
-                window.open(`https://wa.me/${selectedRequestExpert.phone}?text=${encodeURIComponent(text)}`, '_blank');
+            if (isStaticDemoExpert) {
+                // Ensure chat room exists in Firestore for this demo consultation
+                const q = query(collection(db, 'chats'), where('farmerId', '==', currentUser.uid), where('expertId', '==', expertId));
+                const snap = await getDocs(q);
+                let chatId;
+                if (snap.empty) {
+                    const newChat = await addDoc(collection(db, 'chats'), {
+                        farmerId: currentUser.uid,
+                        expertId: expertId,
+                        expertName: expertName,
+                        active: true,
+                        createdAt: serverTimestamp()
+                    });
+                    chatId = newChat.id;
+
+                    // Initial expert greeting & unlock message
+                    await addDoc(collection(db, 'chats', chatId, 'messages'), {
+                        senderId: String(expertId),
+                        senderRole: 'expert',
+                        text: `Namaste! I am ${expertName}. I have accepted your consultation request. Please describe your crop or soil condition.`,
+                        timestamp: serverTimestamp()
+                    });
+                    await addDoc(collection(db, 'chats', chatId, 'messages'), {
+                        senderId: 'system',
+                        senderRole: 'system',
+                        text: `${expertName} has unlocked the audio and video calls for this consultation.`,
+                        timestamp: serverTimestamp()
+                    });
+                } else {
+                    chatId = snap.docs[0].id;
+                }
+
+                showToast(`Connected with ${expertName}! Opening chat...`);
+                setTimeout(() => {
+                    openChat(expert);
+                }, 600);
+            } else {
+                showToast(`Request sent to ${expertName}.`);
+                // WhatsApp Notification
+                if (expert.phone) {
+                    const text = `Hello ${expertName}, I have requested a consultation with you on Krishi AI regarding my crops.`;
+                    window.open(`https://wa.me/${expert.phone}?text=${encodeURIComponent(text)}`, '_blank');
+                }
             }
         } catch (error) {
             console.error("Error creating request:", error);
@@ -202,6 +242,24 @@ export default function Consult() {
                 text: userInput,
                 timestamp: serverTimestamp()
             });
+
+            // If chatting with a static demo expert, simulate realistic expert response
+            if (activeChat && typeof activeChat.id === 'number') {
+                setTimeout(async () => {
+                    try {
+                        const { getSmartResponse } = await import('../data/agriKnowledge');
+                        const reply = getSmartResponse(userInput);
+                        await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+                            senderId: String(activeChat.id),
+                            senderRole: 'expert',
+                            text: reply,
+                            timestamp: serverTimestamp()
+                        });
+                    } catch (e) {
+                        console.warn("Demo reply error:", e);
+                    }
+                }, 1200);
+            }
         } catch (error) {
             console.error("Error sending message:", error);
         }
