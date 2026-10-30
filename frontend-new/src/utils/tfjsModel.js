@@ -276,45 +276,65 @@ export async function runLocalInference(imageElement) {
         };
     }
 
-    console.log("🧪 Running local in-browser inference...");
+    console.log(`🧪 Running local in-browser inference (TTA: ${options.enableTTA !== false}, Crop: ${options.selectedCrop || 'all'})...`);
     const start = performance.now();
+    const enableTTA = options.enableTTA !== false;
+    const selectedCrop = options.selectedCrop || 'all';
 
-    // Perform standard MobileNetV2 preprocessing (224x224, rescale 1/255) in tf.tidy to avoid leaks
+    // Perform Smart Center-Crop and Test-Time Augmentation (TTA) in tf.tidy to avoid leaks
     const results = tf.tidy(() => {
         // Convert image element to tensor
         const imgTensor = tf.browser.fromPixels(imageElement);
         
-        // Resize image to 224x224 (Standard for MobileNetV2)
-        const resizedTensor = tf.image.resizeBilinear(imgTensor, [224, 224]);
-        
-        // Convert dtype to float and normalize to standard MobileNetV2 range [-1, 1]
-        // This is standard for pre-trained Keras models.
-        const normalizedTensor = resizedTensor.toFloat().div(tf.scalar(127.5)).sub(tf.scalar(1.0));
-        
-        // Expand dimensions to create batch size of 1 -> (1, 224, 224, 3)
-        const batchedTensor = normalizedTensor.expandDims(0);
-        
+        // 1. Aspect-Ratio-Preserving Smart Center-Crop (focuses on central leaf area)
+        const [h, w] = [imgTensor.shape[0], imgTensor.shape[1]];
+        const minDim = Math.min(h, w);
+        const startY = Math.floor((h - minDim) / 2);
+        const startX = Math.floor((w - minDim) / 2);
+        const squareTensor = imgTensor.slice([startY, startX, 0], [minDim, minDim, 3]);
+
+        // Standard 224x224 normalized view [-1, 1]
+        const view1 = tf.image.resizeBilinear(squareTensor, [224, 224])
+            .toFloat().div(tf.scalar(127.5)).sub(tf.scalar(1.0));
+
+        let batchedTensor;
+        if (enableTTA) {
+            // View 2: Horizontal mirror flip (removes orientation bias)
+            const view2 = tf.image.flipLeftRight(view1);
+            
+            // View 3: 15% Smart Center Zoom into leaf surface (amplifies lesion detail)
+            const zoomDim = Math.floor(minDim * 0.85);
+            const zStartY = Math.floor((minDim - zoomDim) / 2);
+            const zStartX = Math.floor((minDim - zoomDim) / 2);
+            const zoomSlice = squareTensor.slice([zStartY, zStartX, 0], [zoomDim, zoomDim, 3]);
+            const view3 = tf.image.resizeBilinear(zoomSlice, [224, 224])
+                .toFloat().div(tf.scalar(127.5)).sub(tf.scalar(1.0));
+
+            // Stack 3 views into a single GPU batch [3, 224, 224, 3] for instant parallel inference
+            batchedTensor = tf.stack([view1, view2, view3]);
+        } else {
+            batchedTensor = view1.expandDims(0);
+        }
+
         // Run prediction
         const predictionTensor = activeModel.predict(batchedTensor);
         
-        // Get logits/probabilities array
-        const probabilities = predictionTensor.dataSync();
+        // Average logits across TTA views
+        const meanPredictions = enableTTA ? predictionTensor.mean(0) : predictionTensor.squeeze();
         
-        // Get argmax index (highest probability)
-        const predIdx = predictionTensor.argMax(-1).dataSync()[0];
-        
-        return { probabilities, predIdx };
+        const rawProbabilities = meanPredictions.dataSync();
+        return { rawProbabilities };
     });
 
     const end = performance.now();
-    console.log(`⏱️ Local inference took ${(end - start).toFixed(1)}ms`);
+    console.log(`⏱️ Local TTA inference took ${(end - start).toFixed(1)}ms`);
 
-    const { probabilities, predIdx } = results;
+    const { rawProbabilities } = results;
 
     // Dynamically adjust the class order list based on the model's output layer shape!
     let activeClassList = classOrderList;
-    if (activeClassList.length !== probabilities.length) {
-        if (probabilities.length === 9) {
+    if (activeClassList.length !== rawProbabilities.length) {
+        if (rawProbabilities.length === 9) {
             activeClassList = [
                 "Potato___Early_blight",
                 "Potato___Late_blight",
@@ -327,7 +347,7 @@ export async function runLocalInference(imageElement) {
                 "Tomato___healthy"
             ];
             console.log("⚡ Auto-detected 9-class Potato/Tomato model. Using correct class mapping.");
-        } else if (probabilities.length === 6) {
+        } else if (rawProbabilities.length === 6) {
             activeClassList = [
                 "Potato___Early_blight",
                 "Potato___Late_blight",
@@ -340,12 +360,42 @@ export async function runLocalInference(imageElement) {
         }
     }
 
-    const confidence = probabilities[predIdx];
+    let probabilities = Array.from(rawProbabilities);
+
+    // Apply Crop-Conditioned Filtering if farmer specified a plant
+    if (selectedCrop === 'tomato') {
+        probabilities = probabilities.map((p, idx) => {
+            const name = activeClassList[idx] || '';
+            return name.startsWith('Tomato') ? p : 0;
+        });
+        const sum = probabilities.reduce((a, b) => a + b, 0);
+        if (sum > 0) probabilities = probabilities.map(p => p / sum);
+        console.log("🍅 Filtered inference to Tomato classes only.");
+    } else if (selectedCrop === 'potato') {
+        probabilities = probabilities.map((p, idx) => {
+            const name = activeClassList[idx] || '';
+            return name.startsWith('Potato') ? p : 0;
+        });
+        const sum = probabilities.reduce((a, b) => a + b, 0);
+        if (sum > 0) probabilities = probabilities.map(p => p / sum);
+        console.log("🥔 Filtered inference to Potato classes only.");
+    }
+
+    // Find highest probability class
+    let predIdx = 0;
+    let confidence = probabilities[0];
+    for (let i = 1; i < probabilities.length; i++) {
+        if (probabilities[i] > confidence) {
+            confidence = probabilities[i];
+            predIdx = i;
+        }
+    }
+
     const className = activeClassList[predIdx] || "Unknown";
     const diseaseKey = DISEASE_KEY_MAP[className] || "tomato_early_blight";
 
     // Gather Top 3 predictions
-    const indexedProbabilities = Array.from(probabilities).map((p, idx) => ({
+    const indexedProbabilities = probabilities.map((p, idx) => ({
         index: idx,
         confidence: p
     }));
@@ -353,6 +403,11 @@ export async function runLocalInference(imageElement) {
     // Sort descending
     indexedProbabilities.sort((a, b) => b.confidence - a.confidence);
     
+    const top1 = indexedProbabilities[0];
+    const top2 = indexedProbabilities[1] || { confidence: 0 };
+    const margin = top1.confidence - top2.confidence;
+    const isLowConfidence = (confidence < 0.60 || margin < 0.15) && diseaseKey !== 'healthy';
+
     const top3 = indexedProbabilities.slice(0, 3).map(item => {
         const name = activeClassList[item.index] || "Unknown";
         return {
@@ -376,6 +431,11 @@ export async function runLocalInference(imageElement) {
         disease_key: diseaseKey,
         confidence: confidence,
         is_healthy: diseaseKey === "healthy",
+        is_low_confidence: isLowConfidence,
+        confidence_margin: margin,
+        tta_enabled: enableTTA,
+        smart_crop_applied: true,
+        selected_crop: selectedCrop,
         top3: top3,
         local_inference: true,
         inference_time_ms: Math.round(end - start)

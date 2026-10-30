@@ -210,6 +210,9 @@ export default function Scan() {
     const [modelState, setModelState] = useState('unloaded'); // 'unloaded', 'downloading', 'ready', 'error'
     const [downloadProgress, setDownloadProgress] = useState(0);
 
+    // Selected crop filter for high-precision targeted inference ('all', 'tomato', 'potato')
+    const [selectedCrop, setSelectedCrop] = useState('all');
+
     // Weather-based risk prediction states
     const [weatherData, setWeatherData] = useState(null);
     const [weatherLoading, setWeatherLoading] = useState(true);
@@ -606,7 +609,7 @@ export default function Scan() {
                 imgEl.onerror = (e) => reject(new Error('Failed to load image element for TF.js'));
             });
 
-            const prediction = await runLocalInference(imgEl);
+            const prediction = await runLocalInference(imgEl, { selectedCrop, enableTTA: true });
 
             if (prediction.confidence < 0.30 && prediction.disease_key !== 'healthy') {
                 setIsScanning(false);
@@ -631,7 +634,7 @@ export default function Scan() {
                 }
             }
 
-            console.log(`✅ TF.js Browser Prediction: ${finalClassName} (${finalConfidence.toFixed(1)}%)`);
+            console.log(`✅ TF.js Browser Prediction: ${finalClassName} (${finalConfidence.toFixed(1)}%) [TTA: ${prediction.tta_enabled}, Crop: ${selectedCrop}]`);
 
             // Construct result structure with an extra flag showing it was processed locally
             const resObj = buildResult(finalDiseaseKey, finalConfidence);
@@ -639,6 +642,9 @@ export default function Scan() {
             resObj.inference_time_ms = prediction.inference_time_ms;
             resObj.raw_class = finalClassName;
             resObj.top3 = prediction.top3;
+            resObj.is_low_confidence = prediction.is_low_confidence;
+            resObj.selected_crop = selectedCrop;
+            resObj.tta_enabled = prediction.tta_enabled;
 
             setIsScanning(false);
             setShowSuccess(true);
@@ -1086,6 +1092,82 @@ export default function Scan() {
                             ref={cameraInputRef}
                             id="camera-capture"
                         />
+                        {/* Crop Precision Filter Pills */}
+                        <div className="crop-selector-container" style={{
+                            margin: '0.5rem auto 1.5rem auto',
+                            maxWidth: '520px',
+                            textAlign: 'center'
+                        }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: '600', color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem' }}>
+                                🎯 Select Crop for Higher Precision (Optional):
+                            </div>
+                            <div style={{
+                                display: 'inline-flex',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                padding: '4px',
+                                borderRadius: '30px',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                gap: '4px',
+                                flexWrap: 'wrap',
+                                justifyContent: 'center'
+                            }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedCrop('all')}
+                                    style={{
+                                        background: selectedCrop === 'all' ? '#10b981' : 'transparent',
+                                        color: selectedCrop === 'all' ? '#fff' : 'rgba(255,255,255,0.7)',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        padding: '6px 14px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        boxShadow: selectedCrop === 'all' ? '0 2px 8px rgba(16, 185, 129, 0.4)' : 'none'
+                                    }}
+                                >
+                                    🌱 Auto-Detect (All)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedCrop('tomato')}
+                                    style={{
+                                        background: selectedCrop === 'tomato' ? '#ef4444' : 'transparent',
+                                        color: selectedCrop === 'tomato' ? '#fff' : 'rgba(255,255,255,0.7)',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        padding: '6px 14px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        boxShadow: selectedCrop === 'tomato' ? '0 2px 8px rgba(239, 68, 68, 0.4)' : 'none'
+                                    }}
+                                >
+                                    🍅 Tomato Only
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedCrop('potato')}
+                                    style={{
+                                        background: selectedCrop === 'potato' ? '#d97706' : 'transparent',
+                                        color: selectedCrop === 'potato' ? '#fff' : 'rgba(255,255,255,0.7)',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        padding: '6px 14px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        boxShadow: selectedCrop === 'potato' ? '0 2px 8px rgba(217, 119, 6, 0.4)' : 'none'
+                                    }}
+                                >
+                                    🥔 Potato Only
+                                </button>
+                            </div>
+                        </div>
+
                         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                             <button 
                                 type="button"
@@ -1223,7 +1305,60 @@ export default function Scan() {
                                                         ⚡ {t.offlineInferenceBadge}
                                                     </span>
                                                 )}
+                                                {result.tta_enabled && (
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.3rem',
+                                                        background: 'rgba(168, 85, 247, 0.1)',
+                                                        color: '#c084fc',
+                                                        padding: '0.15rem 0.5rem',
+                                                        border: '1px solid rgba(168, 85, 247, 0.25)',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '600'
+                                                    }}>
+                                                        🔬 3-Pass TTA
+                                                    </span>
+                                                )}
+                                                {result.selected_crop && result.selected_crop !== 'all' && (
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.3rem',
+                                                        background: 'rgba(239, 68, 68, 0.1)',
+                                                        color: '#f87171',
+                                                        padding: '0.15rem 0.5rem',
+                                                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '600',
+                                                        textTransform: 'capitalize'
+                                                    }}>
+                                                        🎯 {result.selected_crop}
+                                                    </span>
+                                                )}
                                             </div>
+                                            {result.is_low_confidence && (
+                                                <div style={{
+                                                    marginTop: '0.75rem',
+                                                    padding: '0.6rem 0.85rem',
+                                                    background: 'rgba(245, 158, 11, 0.08)',
+                                                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                                                    borderRadius: '8px',
+                                                    fontSize: '0.8rem',
+                                                    color: '#fbbf24',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    textAlign: 'left'
+                                                }}>
+                                                    <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                                                    <span>
+                                                        <strong>Notice:</strong> Early or subtle leaf symptoms detected. For maximum confidence, hold the camera closer to the leaf under bright natural light.
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
